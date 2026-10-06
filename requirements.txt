@@ -1,0 +1,14 @@
+black==24.3.*
+click==8.1.*
+isort==5.13.*
+mypy-extensions==1.0.*
+packaging==24.0
+pathspec==0.12.*
+platformdirs==4.2.*
+ruff==0.0.*
+cmakelint==1.4.*
+clang-format==18.1.*
+cmake-format==0.6.*
+typer==0.20.*
+rich==14.3.*
+pyyaml==6.0.*

@@ -1,0 +1,81 @@
+{
+    "name": "aember-resources-dev",
+
+    // ---------------------------------------------------------------------------
+    // Image source — toggle between prebuilt and local build:
+    //
+    // OPTION A: Pull prebuilt image from GitHub Container Registry
+    // "image": "ghcr.io/ajdariarian94/aember-dev:latest",
+    //
+    // OPTION B: Build from Dockerfile (when updating tools/dependencies)
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": ".."
+    },
+    // ---------------------------------------------------------------------------
+
+    "runArgs": [
+        "--net=host",
+        "--privileged",
+
+        // Docker socket
+        "-v", "/var/run/docker.sock:/var/run/docker.sock",
+
+        // Optional but recommended
+        "-e", "DOCKER_HOST=unix:///var/run/docker.sock",
+        "-e", "HOST_ROOT_PATH=${localWorkspaceFolder}",
+        "-e", "DOCKER_GID=${localEnv:DOCKER_GID}",
+
+        "-e", "DISPLAY",
+        "-v", "/tmp/.X11-unix:/tmp/.X11-unix",
+        "-v", "${env:HOME}/.ssh:/home/dev/.ssh:ro"
+    ],
+    "workspaceFolder": "/aember_ws/aember-resources",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/aember_ws/aember-resources,type=bind",
+    "remoteUser": "dev",
+    "postStartCommand": "/aember_ws/aember-resources/tools/scripts/init.sh",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "anthropic.claude-code",
+                "matepek.vscode-catch2-test-adapter",
+                "ms-python.python",
+                "ms-python.vscode-pylance",
+                "ms-vscode.cmake-tools",
+                "ms-azuretools.vscode-docker",
+                "hbenl.vscode-test-explorer",
+                "github.vscode-pull-request-github",
+                "github.copilot",
+                "vector-of-bool.cmake-tools",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "pkief.material-icon-theme"
+            ],
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "bash",
+                "python.languageServer": "Pylance",
+
+                // Disable cpptools IntelliSense — clangd takes over instead.
+                "C_Cpp.intelliSenseEngine": "disabled",
+
+                "clangd.path": "/usr/bin/clangd",
+                "clangd.arguments": [
+                    "--background-index",
+                    "--compile-commands-dir=${workspaceFolder}/build/configure/x64-poky-linux/Release",
+                    "--clang-tidy",
+                    "--header-insertion=never"
+                ],
+
+                // Format C/C++ files on save using clangd (.clang-format rules).
+                "[cpp]": {
+                    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+                    "editor.formatOnSave": true
+                },
+                "[c]": {
+                    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd",
+                    "editor.formatOnSave": true
+                },
+                "workbench.iconTheme": "material-icon-theme"
+            }
+        }
+    }
+}
