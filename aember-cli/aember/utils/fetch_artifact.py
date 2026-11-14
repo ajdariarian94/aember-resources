@@ -1,5 +1,6 @@
 import logging
 import re
+import subprocess
 import tarfile
 from pathlib import Path
 
@@ -9,20 +10,24 @@ log = logging.getLogger("aember.fetch_artifact")
 
 
 def _get_repo(root: Path) -> str:
-    cmake = (root / "CMakeLists.txt").read_text()
-    match = re.search(r'HOMEPAGE_URL\s+"([^"]+)"', cmake)
+    """owner/name of the GitHub repo, taken from the `origin` remote."""
+    url = subprocess.run(
+        ["git", "-C", str(root), "remote", "get-url", "origin"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url)
     if not match:
-        raise RuntimeError("HOMEPAGE_URL not found in CMakeLists.txt")
-    repo_url = match.group(1).removesuffix(".git")
-    return repo_url.replace("https://github.com/", "")
+        raise RuntimeError(f"origin is not a GitHub remote: {url}")
+    return match.group(1)
 
 
 def get_version(root: Path) -> str:
-    cmake = (root / "CMakeLists.txt").read_text()
-    match = re.search(r"project\s*\([^)]*VERSION\s+([\d.]+)", cmake, re.DOTALL)
-    if not match:
-        raise RuntimeError("Project VERSION not found in CMakeLists.txt")
-    return match.group(1)
+    version = (root / "VERSION").read_text().strip()
+    if not re.fullmatch(r"\d+\.\d+\.\d+", version):
+        raise RuntimeError(f"Invalid VERSION '{version}' (expected x.y.z)")
+    return version
 
 
 def download_release_asset(root: Path, asset_name: str, dest_dir: Path) -> Path:
@@ -37,12 +42,19 @@ def download_release_asset(root: Path, asset_name: str, dest_dir: Path) -> Path:
     log.info("Downloading release asset: %s", asset_name)
 
     CommandRunner.run(
-        f"gh release download v{version} "
-        f"--repo {repo} "
-        f"--pattern '{asset_name}' "
-        f"--dir {dest_dir} "
-        f"--clobber",
-        shell=True,
+        [
+            "gh",
+            "release",
+            "download",
+            f"v{version}",
+            "--repo",
+            repo,
+            "--pattern",
+            asset_name,
+            "--dir",
+            str(dest_dir),
+            "--clobber",
+        ]
     )
 
     return dest_dir / asset_name
@@ -52,7 +64,7 @@ def extract_tar(tar_path: Path, dest_dir: Path) -> None:
     """Extract a tar.gz into dest_dir and remove the archive."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     with tarfile.open(tar_path, "r:gz") as tar:
-        tar.extractall(dest_dir)
+        tar.extractall(dest_dir, filter="tar")
     tar_path.unlink()
     log.debug("Extracted to %s", dest_dir)
 
@@ -63,7 +75,6 @@ def fetch_artifact(root: Path, artifact_name: str, dest_dir: Path) -> bool:
     Returns True if succeeded, False otherwise.
     """
     try:
-        # Download into a temp location inside build/downloads/
         download_dir = root / "build" / "downloads"
         tar_path = download_release_asset(root, artifact_name, download_dir)
         extract_tar(tar_path, dest_dir)
@@ -71,52 +82,4 @@ def fetch_artifact(root: Path, artifact_name: str, dest_dir: Path) -> bool:
         return True
     except Exception as e:
         log.warning("Failed to fetch artifact '%s': %s", artifact_name, e)
-        return False
-
-
-def fetch_hashes(root: Path, architecture: str) -> bool:
-    """
-    Download and extract the hashes tarball for the given architecture
-    from GitHub Releases into yocto/hashes/.
-    Returns True if succeeded, False otherwise.
-    """
-    try:
-        version = get_version(root)
-        artifact = f"aember-hashes-{architecture}-v{version}.tar.gz"
-        dest_dir = root / "yocto" / "hashes"
-
-        download_dir = root / "build" / "downloads"
-        tar_path = download_release_asset(root, artifact, download_dir)
-        extract_tar(tar_path, dest_dir)
-
-        log.info("Fetched hashes for '%s'", architecture)
-        return True
-    except Exception as e:
-        log.warning("Failed to fetch hashes for '%s': %s", architecture, e)
-        return False
-
-
-def fetch_recipe(root: Path, recipe_repo_path: str, dest: Path) -> bool:
-    """
-    Download a recipe file directly from the GitHub repo using gh CLI.
-    Returns True if succeeded, False otherwise.
-    """
-    try:
-        repo = _get_repo(root)
-        dest.parent.mkdir(parents=True, exist_ok=True)
-
-        log.info("Downloading raw file: %s", recipe_repo_path)
-
-        CommandRunner.run(
-            f"gh api "
-            f"repos/{repo}/contents/{recipe_repo_path} "
-            f"--header 'Accept: application/vnd.github.raw' "
-            f"-o {dest}",
-            shell=True,
-        )
-
-        log.info("Fetched recipe: %s", dest.name)
-        return True
-    except Exception as e:
-        log.warning("Failed to fetch recipe '%s': %s", recipe_repo_path, e)
         return False

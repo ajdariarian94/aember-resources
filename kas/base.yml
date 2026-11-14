@@ -1,0 +1,39 @@
+# Base kas configuration shared by every Aember component build.
+#
+# Chain it with one machine file and one recipe file, e.g.
+#   kas build kas/base.yml:kas/machine/x64-linux.yml:kas/recipes/kernel.yml
+#
+# External repos are pinned to an exact commit: the sha256 of the kas chain
+# (plus meta-aember and the kas image) is the CAS key of the produced artifact,
+# so a floating ref would break caching.
+header:
+  version: 23
+
+build_system: oe
+distro: poky
+
+repos:
+  poky:
+    url: https://github.com/ajdariarian94/poky.git
+    branch: master
+    commit: f9e0afedea37edeabc7dcb03bddd7a60fe8d6945
+    layers:
+      meta:
+      meta-poky:
+
+  # This repo itself (no url): meta-aember is versioned here, and its files
+  # are part of the CAS key (aember/utils/kas_hash.py).
+  aember-resources:
+    layers:
+      meta-aember:
+
+local_conf_header:
+  aember-caches: |
+    # Keep downloads and sstate next to (not inside) the bitbake build dir so
+    # wiping yocto/bitbake does not force a full re-fetch / rebuild.
+    DL_DIR ?= "${TOPDIR}/../downloads"
+    SSTATE_DIR ?= "${TOPDIR}/../sstate-cache"
+  aember-disk: |
+    # Delete per-recipe work dirs after a successful build. Outputs are copied
+    # to yocto/build/<arch>/<component>/ in do_deploy, so nothing is lost.
+    INHERIT += "rm_work"

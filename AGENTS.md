@@ -1,0 +1,290 @@
+# AGENTS.md
+
+Guidance for AI coding agents (Claude Code, Copilot, Codex, …) working in
+**aember-resources**.
+
+## What this repo is
+
+`aember-resources` holds the **[kas](https://kas.readthedocs.io/) YAML files
+and the Yocto layer (`meta-aember`)** that build the low-level pieces of
+Aember, a lightweight embedded-Linux system. It also holds the `aember` CLI,
+which runs those builds, hashes them, publishes the results and fetches them
+again:
+
+- Linux kernel
+- BusyBox
+- LXC
+- SDK / compilers (Poky SDK toolchain: GCC 15, C++23, no custom GCC)
+
+kas files say **which layers (external ones pinned by commit), which machine,
+which local.conf settings and which bitbake target** to use. The recipes live
+in `meta-aember/` in this repo, and the only external layer is Poky.
+
+### meta-aember (in this repo)
+
+| What           | Path                                                                  |
+|----------------|-----------------------------------------------------------------------|
+| Layer config   | `meta-aember/conf/layer.conf` (`LAYERSERIES_COMPAT = "whinlatter"`)   |
+| Machines       | `meta-aember/conf/machine/{x64-linux,arm64-linux}.conf`               |
+| Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux}.cfg`) |
+| BusyBox        | `meta-aember/recipes/busybox/aember-busybox.bb` (1.36.1, static, `.cfg` fragments) |
+| LXC            | `meta-aember/recipes/virtualization/aember-lxc.bb` (6.0.2, meson, prctl patch, `.conf` files) |
+| Poky           | cloned by kas into `yocto/poky` from `https://github.com/ajdariarian94/poky.git`, pinned in `kas/base.yml` |
+
+`kas/base.yml` adds the layer through a repo entry without a `url`, which
+kas treats as "the repo this kas file lives in". The layer was copied from
+`../aember/yocto/meta-aember` (aember commit `c4aef15`). From now on this
+repo's copy is the source of truth, so don't edit or sync from `../aember`.
+
+Recipe rules:
+- A recipe's artifact goes **only** into `${DEPLOYDIR}/aember/<component>/`
+  (`AEMBER_DEPLOY`) from `do_deploy`, starting with `rm -rf ${AEMBER_DEPLOY}`.
+  Never write outside `${DEPLOYDIR}` (no `${TOPDIR}/..`, no absolute paths).
+  Only `DEPLOYDIR` is in do_deploy's sstate. A file written anywhere else
+  silently goes missing when the task is restored from cache.
+- Deploy exactly what consumers need. No versioned image copies or
+  symlinks, no static archives. Make text files with paths (`.pc` and so on)
+  relocatable (`${pcfiledir}`). Escape `$` (`D_='$'`) wherever bitbake would
+  otherwise expand a `${var}` itself.
+- Pin sources with `SRC_URI[sha256sum]` (or `SRCREV`). No `AUTOREV`.
+- Don't add `${PN}-dev`, `${PN}-dbg` and the like to `PACKAGES` yourself, because
+  they're already defaults, and a duplicate fails the `packages-list` QA check.
+
+## Architectures
+
+| Arch key (`ctx.architecture`) | kas/Yocto `machine` | Tune        | Kernel image | Artifact dir                  |
+|-------------------------------|---------------------|-------------|--------------|-------------------------------|
+| `x64-poky-linux`              | `x64-linux`         | `core2-64`  | `bzImage`    | `yocto/build/x64-poky-linux/` |
+| `aarch64-poky-linux`          | `arm64-linux`       | `cortexa72` | `Image`      | `yocto/build/aarch64-poky-linux/` |
+
+Recipes deploy into `yocto/bitbake/tmp/deploy/images/<machine>/aember/<deploy_name>/`.
+That folder is restored from sstate, so it's always current, even when every
+task comes from cache. After each kas build, `KasBuild._collect` replaces
+`yocto/build/<arch>/<output_dir>/` with a copy of it. The mapping lives in
+`COMPONENTS` (`config/components.py`): kernel→`kernel`, busybox→`busybox`,
+lxc→`virtualization`. The SDK is the exception: its installer is run into
+`yocto/build/<arch>/sdk/`.
+
+
+## kas files
+
+```
+kas/
+  base.yml                 # header v23, distro poky, pinned poky + local meta-aember, shared local.conf
+  machine/
+    x64-linux.yml          # machine: x64-linux
+    arm64-linux.yml
+  recipes/
+    kernel.yml             # target: aember-kernel
+    busybox.yml            # target: aember-busybox
+    lxc.yml                # target: aember-lxc
+    sdk.yml                # target: core-image-minimal, task: populate_sdk
+```
+
+A component build is always the chain `base.yml:machine/<m>.yml:recipes/<c>.yml`
+(`aember/config/components.py::kas_chain`).
+
+### The build host is the kas container
+
+**Every kas/bitbake run happens inside the pinned kas image**
+(`KAS_IMAGE` in `config/components.py`: `ghcr.io/siemens/kas/kas:5.4@sha256:…`,
+Debian 13). Never run bitbake directly in the dev container: Ubuntu 26.04
+(glibc 2.43, GCC 15 defaulting to C23) breaks Poky's host tools (m4's gnulib)
+and disables uninative.
+
+`utils/kas_container.py` does what the `kas-container` script does, but it
+works from inside the dev container. It talks to the host Docker daemon over
+the mounted socket, so the bind mount uses `HOST_ROOT_PATH` (the host path of
+the repo, set by devcontainer.json), not `/aember_ws/...`:
+
+```
+docker run --rm --user=root -v $HOST_ROOT_PATH:/work -w /work \
+  -e USER_ID=<uid> -e GROUP_ID=<gid> \
+  -e KAS_WORK_DIR=/work/yocto -e KAS_BUILD_DIR=/work/yocto/bitbake \
+  <KAS_IMAGE> <kas command> <chain>
+```
+
+`--user=root` is required: the entrypoint remaps `builder` to your uid/gid
+and then drops privileges. Don't use the upstream `kas-container` script from
+the dev container, because its mounts would resolve to the wrong host paths.
+
+```bash
+aember kas-shell kernel -a x64-poky-linux                      # interactive bitbake shell
+aember kas-shell busybox -c "bitbake -e aember-busybox | grep ^AEMBER_DEPLOY="
+```
+
+Bitbake paths inside the container are `/work/...`. A `yocto/bitbake/` created
+by any other host or path has to be deleted (`downloads/` can be kept).
+The local `kas` pip package is only for quick `kas dump` checks.
+
+kas rules:
+
+- kas 5.4 (image and `requirements.txt` pin) uses config format **23**.
+  Every file starts with `header: version: 23`. Bump the image digest, the pip
+  pin and the header version together.
+- **Pin every repo to an exact `commit:`.** The `branch:` next to it is
+  checked by kas but is only informational. Since there are no floating refs,
+  no lock file is needed.
+- meta-aember is local (repo entry `aember-resources` with no `url`). Its
+  files go into the CAS key directly (`LOCAL_LAYERS` in `config/components.py`).
+  **Editing any file in `meta-aember/` or bumping the poky commit changes the
+  CAS key of every component.** That's intended, and sstate keeps rebuilds of
+  unchanged recipes fast.
+- local.conf additions go in `local_conf_header:` blocks with descriptive keys
+  and a comment saying *why*. Never hand-edit `yocto/bitbake/conf/`, because
+  kas regenerates it.
+- `machine` lives only in `machine/*.yml`, and `target`/`task` only in
+  `recipes/*.yml`, so any combination composes.
+- A new component needs a `kas/recipes/<name>.yml`, an entry in
+  `COMPONENTS` (`aember/config/components.py`), and an `is_present` check in
+  `steps/kas/build.py`.
+
+## The CAS model
+
+The CAS key of an artifact is the **sha256 of the kas image reference, its
+ordered kas chain and every file in `meta-aember/`** (path + content,
+`utils/kas_hash.py`). Poky is pinned by commit and the image by digest, so the
+key covers the recipes, config fragments, patches and the build host. Nothing is rebuilt
+unless the key changes.
+
+```
+image + kas chain + meta-aember ──sha256──► key
+                       ├─ yocto/build/<arch>/<component>/.kas-hash   local: what this checkout has
+                       └─ hashes/<arch>/<component>.sha256           committed: what is released
+kas build (in KAS_IMAGE) ──► yocto/build/<arch>/<component>/ ──tar.gz──► GitHub Release asset
+```
+
+`KasBuild.should_build` (`aember/steps/kas/build.py`):
+
+1. `--force` → build.
+2. The output is present and the local `.kas-hash` equals the key → skip.
+3. The committed `hashes/<arch>/<component>.sha256` differs from the key → no
+   release has this artifact → build.
+4. Otherwise download `aember-<component>-<arch>-v<VERSION>.tar.gz` from the
+   GitHub release `v<VERSION>` into the output dir. If that fails → build.
+
+After a build, the step checks that the output exists, then writes both the
+local marker and `hashes/<arch>/<component>.sha256`. **Commit the `.sha256`
+only together with publishing the matching release asset.** A committed hash
+promises that the asset exists.
+
+- Version: the `VERSION` file at the repo root (`x.y.z`).
+- Repo: parsed from the `origin` git remote. Downloads use `gh` (it needs
+  `GITHUB_TOKEN`, which `check_resources.py` can load from
+  `tools/scripts/.env`).
+- Each release asset is one tarball holding the whole component output dir
+  (the kernel includes `lib/modules/`), staged in `build/downloads/`.
+- Packing and uploading release assets is not implemented yet.
+
+### Compilers
+
+- **The Poky SDK is the only toolchain** (GCC 15 in the pinned poky). C++
+  code targets **C++23** (`-std=c++23` / `CMAKE_CXX_STANDARD 23`).
+- `aember build sdk` runs `populate_sdk` in the kas container, then runs the
+  generated installer in the dev container (so the SDK's relocated paths are
+  dev-container paths):
+  `yocto/bitbake/tmp/deploy/sdk/*-<machine>-toolchain-*.sh -d
+  yocto/build/<arch>/sdk -y`. The target sysroots are `core2-64-poky-linux`
+  and `cortexa72-poky-linux` (`config/sdk.py`).
+- **No gcc-reflection** and no other custom GCC builds. That's a deliberate
+  decision, so don't reintroduce it.
+
+## Repository layout
+
+```
+.devcontainer/          Dev container (Ubuntu 26.04 Yocto build host)
+aember-cli/             Python CLI (`aember`), installed editable in /venv
+  aember/cli/           Typer commands (app.py wires them up, one file per command)
+  aember/core/          Context, Step, Pipeline
+  aember/steps/kas/     KasBuild: the CAS-cached component build
+  aember/steps/linting/ LintStep
+  aember/config/        components.py (kas chains), arch, SDK, QEMU, libs/modules
+  aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, root, runner
+kas/                    kas YAML files (see above)
+meta-aember/            Yocto layer: machines + kernel/busybox/lxc recipes
+hashes/<arch>/          Committed CAS keys of released artifacts
+VERSION                 Release version (x.y.z)
+tools/scripts/          init.sh (container postStart), prerequisites.sh (host setup)
+requirements.txt        Python tooling pinned for the venv (incl. kas)
+yocto/                  git-ignored kas work dir: poky/ clone, bitbake/,
+                        downloads/, sstate-cache/, build/<arch>/<component>/
+```
+
+`aember-cli/.git` is a gitdir pointer (`../.git/modules/aember-cli`), but
+there's no `.gitmodules`, and its files are tracked directly by this repo.
+Don't "fix" this without asking.
+
+## Environment
+
+- Work happens inside the dev container. The workspace is mounted at
+  `/aember_ws/aember-resources`, and the venv is `/venv` (on `PATH`). The
+  aember repo sits next to it at `/aember_ws/aember`.
+- `HOST_ROOT_PATH` (set by devcontainer.json) is the host path of the repo.
+  The kas container mount depends on it, and outside the dev container it
+  falls back to the repo root.
+- Docker is reached through the host socket. The kas image is pulled on
+  first use.
+- `tools/scripts/.env` can contain `GITHUB_TOKEN` and is git-ignored. **Never
+  commit it, print it, or copy secrets into code.**
+- Yocto builds take a long time (hours the first time) and use a lot of disk
+  (16 cores / 15 GB RAM in the container). Don't start `kas build`/`aember
+  build` without the user asking. For quick checks, prefer `kas dump` or
+  `kas shell -c "bitbake -e <target>"`.
+- Run git from the repo root: inside `aember-cli/`, git follows the broken
+  `.git` pointer and fails.
+
+## Commands
+
+```bash
+aember --help                # list commands
+aember -v <cmd>              # verbose (DEBUG) logging
+aember build kernel busybox lxc sdk --arch x64-poky-linux   # CAS-cached kas builds
+aember build kernel -a aarch64-poky-linux --force            # rebuild ignoring the cache
+aember kas-shell lxc -a x64-poky-linux                       # bitbake shell in the kas image
+aember lint                  # ruff --fix + black + clang-format + cmake-format/cmakelint
+python aember-cli/run.py ... # run the CLI without the installed entry point
+```
+
+## Coding conventions (aember-cli)
+
+- Python ≥ 3.10 syntax. Line length is 88, formatting is **black**, linting is
+  **ruff**, isort uses the `black` profile. Run `aember lint` before finishing.
+- **A new build is a Step plus a CLI command:**
+  1. `aember/steps/<area>/<name>.py`: subclass `Step`, implement
+     `run(self, ctx: Context)`, and put the cache decision in `should_build(ctx)`.
+  2. `aember/cli/<group>/<name>.py`: a thin Typer function that builds a
+     `Context` and runs a `Pipeline([...])`, with no logic of its own.
+  3. Register it in `aember/cli/app.py`.
+- Steps run kas only through `utils/kas_container.run_kas(root, cmd, chain)`.
+  Other commands go through `CommandRunner.run([...])` with an argument list. Per-arch and per-component data belong in `aember/config/`,
+  keyed by the arch string. Raise a `ValueError` that lists the known keys when
+  a key is missing.
+- Commands find the repo root with `utils/root.find_root()` (it looks for
+  `kas/base.yml`), not with `Path.cwd()`.
+- Use the `Architecture` / `BuildType` enums for CLI options.
+- Logging: `log = logging.getLogger("aember.<area>")`. Use `%s` args in log
+  calls, not f-strings.
+- Fetch helpers return `bool` and log warnings instead of raising, so callers
+  can fall back to building from source. Keep that contract.
+- Build paths from `ctx.root` (`pathlib.Path`). `aember/config/libs.py` still
+  has hard-coded `/aember_ws/aember/...` paths from the old setup (unused for
+  now).
+- Steps must be idempotent. Clear temp dirs with
+  `shutil.rmtree(..., ignore_errors=True)` before using them.
+
+## YAML conventions
+
+- 2-space indent, `.yml` extension, lowercase-hyphen file names.
+- Comment each `local_conf_header` block with *why* the setting exists.
+- Changing any kas file changes the CAS key. Rebuild, then commit the new
+  `.sha256` together with the released artifact.
+
+## Working agreements for agents
+
+- Commit only when asked, and branch off `main` first.
+- Confirm before deleting or overwriting anything under `yocto/build/`, the
+  hashes dir, `resources/` or `build/`. Those are expensive to regenerate.
+- Don't commit `hashes/**.sha256` without a matching published asset, and
+  don't publish GitHub releases or upload assets unless explicitly asked.
+- When something in this file goes stale (for example, once the kas files
+  land), update this file in the same change.

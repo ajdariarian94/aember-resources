@@ -3,6 +3,8 @@
 import typer  # type: ignore
 from aember.utils.logging import setup_logging
 
+from .base.build import build
+from .base.kas_shell import kas_shell
 from .base.lint import lint
 
 aember = typer.Typer(help="Aember build system")
@@ -29,6 +31,10 @@ aember_app = typer.Typer(help="Aember related commands")
 # Base commands
 # ----------------------------
 
+aember.command(help="Build components with kas (CAS-cached)")(build)
+aember.command(
+    name="kas-shell", help="Open a bitbake shell in the kas build container"
+)(kas_shell)
 aember.command(help="Lint Python, C++, and CMake code")(lint)
 
 aember.add_typer(aember_app, name="app")

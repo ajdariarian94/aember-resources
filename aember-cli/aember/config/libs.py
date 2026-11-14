@@ -7,9 +7,6 @@ from typing import Dict, List
 
 ARCH_CONFIG = {
     "x64-poky-linux": {
-        "gcc_reflection_root": Path(
-            "/aember_ws/aember/yocto/build/x64-poky-linux/gcc-reflection/install"
-        ),
         "poky_sysroot": Path(
             "/aember_ws/aember/yocto/build/x64-poky-linux/sdk/sysroots/core2-64-poky-linux"
         ),
@@ -21,11 +18,8 @@ ARCH_CONFIG = {
         "gcc_lib_dirs": ["lib", "lib64", "lib/x86_64-linux-gnu"],
     },
     "aarch64-poky-linux": {
-        "gcc_reflection_root": Path(
-            "/aember_ws/aember/yocto/build/aarch64-poky-linux/gcc-reflection/install"
-        ),
         "poky_sysroot": Path(
-            "/aember_ws/aember/yocto/build/aarch64-poky-linux/sdk/sysroots/cortexa57-poky-linux"
+            "/aember_ws/aember/yocto/build/aarch64-poky-linux/sdk/sysroots/cortexa72-poky-linux"
         ),
         "virt_libs": Path(
             "/aember_ws/aember/yocto/build/aarch64-poky-linux/virtualization/libs"

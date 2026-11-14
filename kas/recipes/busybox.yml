@@ -1,0 +1,5 @@
+# Component: busybox
+header:
+  version: 23
+
+target: aember-busybox

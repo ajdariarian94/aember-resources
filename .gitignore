@@ -1,2 +1,5 @@
 tools/scripts/.env
 .ruff_cache
+
+# kas work dir: cloned layers, bitbake dir, downloads, sstate, artifacts
+yocto/

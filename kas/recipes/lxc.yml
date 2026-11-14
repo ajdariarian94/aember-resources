@@ -1,0 +1,5 @@
+# Component: lxc
+header:
+  version: 23
+
+target: aember-lxc

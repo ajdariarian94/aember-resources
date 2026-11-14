@@ -1,0 +1,7 @@
+# Component: sdk — Poky cross toolchain + target sysroot (GCC 15, C++23).
+# The aember CLI runs the generated installer into yocto/build/<arch>/sdk.
+header:
+  version: 23
+
+target: core-image-minimal
+task: populate_sdk
