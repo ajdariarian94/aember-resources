@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         iputils-ping libacl1 locales lz4 python3 python3-git python3-jinja2 \
         python3-pexpect python3-pip python3-subunit python3-venv socat \
         texinfo unzip wget xz-utils zstd \
+        gh pkgconf \
         ca-certificates sudo vim bash-completion figlet lolcat acl docker.io \
     && rm -rf /var/lib/apt/lists/* \
     && locale-gen en_US.UTF-8 \

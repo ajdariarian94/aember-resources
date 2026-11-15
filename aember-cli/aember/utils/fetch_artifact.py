@@ -1,26 +1,14 @@
 import logging
-import re
-import subprocess
-import tarfile
 from pathlib import Path
+import re
+import shutil
 
+from aember.config.release import DOWNLOAD_DIR, release_tag
+from aember.utils.archive import extract_zip
+from aember.utils.github import get_repo, load_github_token
 from aember.utils.runner import CommandRunner
 
 log = logging.getLogger("aember.fetch_artifact")
-
-
-def _get_repo(root: Path) -> str:
-    """owner/name of the GitHub repo, taken from the `origin` remote."""
-    url = subprocess.run(
-        ["git", "-C", str(root), "remote", "get-url", "origin"],
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.strip()
-    match = re.search(r"github\.com[:/](.+?)(?:\.git)?$", url)
-    if not match:
-        raise RuntimeError(f"origin is not a GitHub remote: {url}")
-    return match.group(1)
 
 
 def get_version(root: Path) -> str:
@@ -35,7 +23,8 @@ def download_release_asset(root: Path, asset_name: str, dest_dir: Path) -> Path:
     Download a GitHub Release asset into dest_dir using gh CLI.
     Returns the path to the downloaded file.
     """
-    repo = _get_repo(root)
+    load_github_token(root)
+    repo = get_repo(root)
     version = get_version(root)
     dest_dir.mkdir(parents=True, exist_ok=True)
 
@@ -46,7 +35,7 @@ def download_release_asset(root: Path, asset_name: str, dest_dir: Path) -> Path:
             "gh",
             "release",
             "download",
-            f"v{version}",
+            release_tag(version),
             "--repo",
             repo,
             "--pattern",
@@ -60,26 +49,33 @@ def download_release_asset(root: Path, asset_name: str, dest_dir: Path) -> Path:
     return dest_dir / asset_name
 
 
-def extract_tar(tar_path: Path, dest_dir: Path) -> None:
-    """Extract a tar.gz into dest_dir and remove the archive."""
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(tar_path, "r:gz") as tar:
-        tar.extractall(dest_dir, filter="tar")
-    tar_path.unlink()
-    log.debug("Extracted to %s", dest_dir)
-
-
-def fetch_artifact(root: Path, artifact_name: str, dest_dir: Path) -> bool:
+def fetch_artifact(root: Path, asset_name: str, dest_dir: Path) -> bool:
     """
-    Download and extract a named release artifact into dest_dir.
+    Download a zip release asset and extract it into dest_dir.
     Returns True if succeeded, False otherwise.
     """
     try:
-        download_dir = root / "build" / "downloads"
-        tar_path = download_release_asset(root, artifact_name, download_dir)
-        extract_tar(tar_path, dest_dir)
-        log.info("Fetched artifact: %s → %s", artifact_name, dest_dir)
+        zip_path = download_release_asset(root, asset_name, root / DOWNLOAD_DIR)
+        extract_zip(zip_path, dest_dir)
+        zip_path.unlink()
+        log.info("Fetched artifact: %s → %s", asset_name, dest_dir)
         return True
     except Exception as e:
-        log.warning("Failed to fetch artifact '%s': %s", artifact_name, e)
+        log.warning("Failed to fetch artifact '%s': %s", asset_name, e)
+        return False
+
+
+def fetch_file(root: Path, asset_name: str, dest: Path) -> bool:
+    """
+    Download a release asset as-is (e.g. the SDK installer) to dest.
+    Returns True if succeeded, False otherwise.
+    """
+    try:
+        path = download_release_asset(root, asset_name, root / DOWNLOAD_DIR)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(path, dest)
+        log.info("Fetched file: %s → %s", asset_name, dest)
+        return True
+    except Exception as e:
+        log.warning("Failed to fetch file '%s': %s", asset_name, e)
         return False

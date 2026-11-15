@@ -5,3 +5,21 @@ header:
 
 target: core-image-minimal
 task: populate_sdk
+
+local_conf_header:
+  aember-sdk: |
+    # Ship liblxc, its headers and lxc.pc in the SDK target sysroot so C++
+    # code can build against LXC (aember-lxc-dev pulls in aember-lxc).
+    TOOLCHAIN_TARGET_TASK:append = " aember-lxc-dev"
+  aember-sdk-headless-qemu: |
+    # The SDK's QEMU links SDL, virglrenderer and epoxy because poky enables
+    # opengl. They pull nativesdk-mesa, which needs clang/LLVM twice (native
+    # and nativesdk, ~2 h) and ships a 133 MB libLLVM. Nothing in aember runs
+    # the SDK's QEMU with a display, so build it headless.
+    PACKAGECONFIG:remove:pn-nativesdk-qemu = "sdl virglrenderer epoxy"
+  aember-sdk-parallelism: |
+    # The SDK pulls in clang-native, whose LLVM C++ sources OOM-kill cc1plus
+    # at the default 16 tasks x -j16 on a 15 GB host. Cap concurrent tasks
+    # and make jobs so the build fits in memory.
+    BB_NUMBER_THREADS = "4"
+    PARALLEL_MAKE = "-j 8"

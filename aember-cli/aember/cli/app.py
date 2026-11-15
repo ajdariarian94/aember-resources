@@ -6,6 +6,8 @@ from aember.utils.logging import setup_logging
 from .base.build import build
 from .base.kas_shell import kas_shell
 from .base.lint import lint
+from .base.pack import pack
+from .base.publish import publish
 
 aember = typer.Typer(help="Aember build system")
 
@@ -36,5 +38,11 @@ aember.command(
     name="kas-shell", help="Open a bitbake shell in the kas build container"
 )(kas_shell)
 aember.command(help="Lint Python, C++, and CMake code")(lint)
+aember.command(
+    help="Pack built components into release assets in build/release/ (no upload)"
+)(pack)
+aember.command(help="Upload the packed release build/release/v<VERSION>/ to GitHub")(
+    publish
+)
 
 aember.add_typer(aember_app, name="app")

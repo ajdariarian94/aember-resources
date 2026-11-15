@@ -151,7 +151,7 @@ unless the key changes.
 image + kas chain + meta-aember ──sha256──► key
                        ├─ yocto/build/<arch>/<component>/.kas-hash   local: what this checkout has
                        └─ hashes/<arch>/<component>.sha256           committed: what is released
-kas build (in KAS_IMAGE) ──► yocto/build/<arch>/<component>/ ──tar.gz──► GitHub Release asset
+kas build (in KAS_IMAGE) ──► yocto/build/<arch>/<component>/ ──aember pack──► build/release/v<VERSION>/ ──► GitHub release
 ```
 
 `KasBuild.should_build` (`aember/steps/kas/build.py`):
@@ -160,8 +160,10 @@ kas build (in KAS_IMAGE) ──► yocto/build/<arch>/<component>/ ──tar.gz�
 2. The output is present and the local `.kas-hash` equals the key → skip.
 3. The committed `hashes/<arch>/<component>.sha256` differs from the key → no
    release has this artifact → build.
-4. Otherwise download `aember-<component>-<arch>-v<VERSION>.tar.gz` from the
-   GitHub release `v<VERSION>` into the output dir. If that fails → build.
+4. Otherwise download the release asset of `v<VERSION>` (see below): a zip is
+   extracted into the output dir, the SDK installer is kept as
+   `yocto/build/<arch>/sdk-installer.sh` and run into `sdk/`. If that fails →
+   build.
 
 After a build, the step checks that the output exists, then writes both the
 local marker and `hashes/<arch>/<component>.sha256`. **Commit the `.sha256`
@@ -171,21 +173,68 @@ promises that the asset exists.
 - Version: the `VERSION` file at the repo root (`x.y.z`).
 - Repo: parsed from the `origin` git remote. Downloads use `gh` (it needs
   `GITHUB_TOKEN`, which `check_resources.py` can load from
-  `tools/scripts/.env`).
-- Each release asset is one tarball holding the whole component output dir
-  (the kernel includes `lib/modules/`), staged in `build/downloads/`.
-- Packing and uploading release assets is not implemented yet.
+  `tools/scripts/.env`), staged in `build/downloads/`.
+
+### Release assets
+
+The aember repo pulls these assets later to compile and pack the app, so
+their names and the manifest format are an interface. Change them in both
+repos together. Naming lives in `config/release.py`.
+
+| Asset                                      | Content                                                    |
+|--------------------------------------------|------------------------------------------------------------|
+| `aember-<component>-<arch>-v<VERSION>.zip` | kernel, busybox, lxc: the whole output dir, incl. `.kas-hash` |
+| `aember-sdk-<arch>-v<VERSION>.sh`          | the SDK installer; run it with `-d <dir> -y`               |
+| `manifest.json`                            | version, tag, and per asset: component, arch, format, kas hash, sha256, size |
+| `SHA256SUMS`                               | `sha256sum -c` list of all assets                          |
+
+- `aember pack [components] -a <arch>` stages assets in
+  `build/release/v<VERSION>/` (git-ignored) and regenerates `manifest.json`
+  and `SHA256SUMS` over everything packed for that version
+  (`steps/release/pack.py`). It refuses a component whose output isn't
+  present, whose `.kas-hash` isn't the current key, or whose
+  `hashes/<arch>/<c>.sha256` differs. Per-asset metadata goes in `.meta/`,
+  which is not uploaded.
+- Zips are reproducible (sorted entries, fixed 1980 timestamps), keep Unix
+  permission bits, and store symlinks as regular files (lxc's `liblxc.so*`),
+  so any unzip tool works. `utils/archive.extract_zip` restores the modes.
+- The SDK ships as its installer, not as a zip: the installed tree is ~4 GB
+  (GitHub caps assets at 2 GiB), has >1000 symlinks and has its install path
+  baked in. The installer relocates itself.
+- `aember publish [--clobber]` uploads the staged release
+  (`steps/release/publish.py`). It re-checks every asset's sha256 against
+  `manifest.json`, requires HEAD to be pushed and HEAD's committed
+  `hashes/<arch>/<c>.sha256` to equal each asset's kas hash, then creates
+  release `v<VERSION>` at HEAD (if missing) and uploads the assets plus
+  `manifest.json`/`SHA256SUMS`. An existing asset is refused unless
+  `--clobber`. The order is: build → pack → commit code + `hashes/` → push
+  → publish. Only publish when explicitly asked.
+- gh auth: `GITHUB_TOKEN`/`GH_TOKEN` in the env, `GITHUB_TOKEN` in
+  `tools/scripts/.env` (`utils/github.load_github_token`), or `gh auth login`.
 
 ### Compilers
 
 - **The Poky SDK is the only toolchain** (GCC 15 in the pinned poky). C++
   code targets **C++23** (`-std=c++23` / `CMAKE_CXX_STANDARD 23`).
-- `aember build sdk` runs `populate_sdk` in the kas container, then runs the
-  generated installer in the dev container (so the SDK's relocated paths are
-  dev-container paths):
-  `yocto/bitbake/tmp/deploy/sdk/*-<machine>-toolchain-*.sh -d
-  yocto/build/<arch>/sdk -y`. The target sysroots are `core2-64-poky-linux`
-  and `cortexa72-poky-linux` (`config/sdk.py`).
+- `aember build sdk` runs `populate_sdk` in the kas container, copies the
+  installer (`yocto/bitbake/tmp/deploy/sdk/*-<machine>-toolchain-*.sh`) to
+  `yocto/build/<arch>/sdk-installer.sh` (its release asset), then runs it in
+  the dev container with `-d yocto/build/<arch>/sdk -y`, so the SDK's
+  relocated paths are dev-container paths. The target sysroots are
+  `core2-64-poky-linux` and `cortexa72-poky-linux` (`config/sdk.py`).
+- The SDK's QEMU is built headless (`PACKAGECONFIG:remove:pn-nativesdk-qemu`
+  in `kas/recipes/sdk.yml`). With poky's `opengl` it pulls SDL, virglrenderer
+  and mesa, and mesa needs clang/LLVM built twice (~2 h). Check
+  `bitbake -g core-image-minimal -c populate_sdk` (`pn-buildlist`) when
+  adding SDK packages, so they don't bring clang back.
+- `sdk.yml` also caps `BB_NUMBER_THREADS`/`PARALLEL_MAKE`: at 16x16 the big
+  C++ compiles got OOM-killed on the 15 GB host.
+- The SDK has no `pkg-config`. Poky expects the host's one
+  (`nativesdk-sdk-provides-dummy`), so the dev container installs `pkgconf`.
+- Extra target libraries go into the SDK through `TOOLCHAIN_TARGET_TASK` in
+  `kas/recipes/sdk.yml` (currently `aember-lxc-dev`: liblxc, headers,
+  `lxc.pc`). Use it with
+  `source yocto/build/<arch>/sdk/environment-setup-<tune>-poky-linux`.
 - **No gcc-reflection** and no other custom GCC builds. That's a deliberate
   decision, so don't reintroduce it.
 
@@ -197,9 +246,10 @@ aember-cli/             Python CLI (`aember`), installed editable in /venv
   aember/cli/           Typer commands (app.py wires them up, one file per command)
   aember/core/          Context, Step, Pipeline
   aember/steps/kas/     KasBuild: the CAS-cached component build
+  aember/steps/release/ PackComponent, WriteReleaseIndex, PublishRelease
   aember/steps/linting/ LintStep
-  aember/config/        components.py (kas chains), arch, SDK, QEMU, libs/modules
-  aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, root, runner
+  aember/config/        components.py (kas chains), release.py (asset names), arch, SDK, QEMU, libs/modules
+  aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, archive (zip), github, root, runner
 kas/                    kas YAML files (see above)
 meta-aember/            Yocto layer: machines + kernel/busybox/lxc recipes
 hashes/<arch>/          Committed CAS keys of released artifacts
@@ -208,6 +258,7 @@ tools/scripts/          init.sh (container postStart), prerequisites.sh (host se
 requirements.txt        Python tooling pinned for the venv (incl. kas)
 yocto/                  git-ignored kas work dir: poky/ clone, bitbake/,
                         downloads/, sstate-cache/, build/<arch>/<component>/
+build/                  git-ignored: downloads/ (fetched assets), release/v<VERSION>/ (packed)
 ```
 
 `aember-cli/.git` is a gitdir pointer (`../.git/modules/aember-cli`), but
@@ -230,6 +281,11 @@ Don't "fix" this without asking.
   (16 cores / 15 GB RAM in the container). Don't start `kas build`/`aember
   build` without the user asking. For quick checks, prefer `kas dump` or
   `kas shell -c "bitbake -e <target>"`.
+- Don't kill a running build mid-compile unless you have to. An interrupted
+  `do_compile` can leave truncated object files that `make` later treats as
+  up to date (symptom: odd link errors like "undefined reference to `main`").
+  If you did stop one, run `bitbake -c clean <recipe>` for the failing recipe
+  through `aember kas-shell` and rebuild.
 - Run git from the repo root: inside `aember-cli/`, git follows the broken
   `.git` pointer and fails.
 
@@ -240,6 +296,8 @@ aember --help                # list commands
 aember -v <cmd>              # verbose (DEBUG) logging
 aember build kernel busybox lxc sdk --arch x64-poky-linux   # CAS-cached kas builds
 aember build kernel -a aarch64-poky-linux --force            # rebuild ignoring the cache
+aember pack -a x64-poky-linux                                # stage release assets (no upload)
+aember publish                                               # upload build/release/v<VERSION>/ to GitHub
 aember kas-shell lxc -a x64-poky-linux                       # bitbake shell in the kas image
 aember lint                  # ruff --fix + black + clang-format + cmake-format/cmakelint
 python aember-cli/run.py ... # run the CLI without the installed entry point

@@ -3,3 +3,6 @@ tools/scripts/.env
 
 # kas work dir: cloned layers, bitbake dir, downloads, sstate, artifacts
 yocto/
+
+# aember build/pack staging: downloaded and packed release assets
+build/
