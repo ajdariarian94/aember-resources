@@ -9,11 +9,12 @@ an item only when the user says so. aember-side items are in
 
 ## Architectures
 
-- [ ] **aarch64 (Raspberry Pi 4, Cortex-A72):** build kernel, BusyBox, LXC and
-  SDK for `aarch64-poky-linux`, check the arm64 kernel fragment with the
-  configure check and `lxc-checkconfig`, publish the assets. aember's
-  `--arch aarch64-poky-linux` builds stop at `FetchResources` until then.
-  In progress on branch `feature/aarch64`.
+- [x] **aarch64 (Raspberry Pi 4, Cortex-A72):** kernel, BusyBox, LXC and SDK
+  for `aarch64-poky-linux` released in v0.1.2; aember boots them in QEMU.
+- [ ] aarch64: run `lxc-checkconfig` against the arm64 kernel `.config`
+  (only the configure check has been run so far).
+- [ ] `aember pack` takes a single `-a`; a second one silently replaces the
+  first. Accept several architectures.
 - [ ] **arm32 (ARMv7, `arm-poky-linux`)** after aarch64: machine conf and
   `kas/machine/` file, kernel and BusyBox fragments (BusyBox already has an
   `arm-linux.cfg` hook), LXC conf, `config/` entries (machine, kernel image
