@@ -46,6 +46,23 @@ Recipe rules:
   symlinks, no static archives. Make text files with paths (`.pc` and so on)
   relocatable (`${pcfiledir}`). Escape `$` (`D_='$'`) wherever bitbake would
   otherwise expand a `${var}` itself.
+- Kernel config: the recipe inherits plain `kernel`, which does **not**
+  merge `.cfg` files from `SRC_URI` (only `kernel-yocto` does).
+  `aember_merge_fragments` in `aember-kernel.bb` merges
+  `base.cfg` + `<arch>.cfg` with `scripts/kconfig/merge_config.sh`, runs
+  `olddefconfig`, and fails `do_configure` if any fragment line didn't make
+  it into `.config` (unknown symbol, unmet dependency, or forced by a
+  `select`). Write string options as `CONFIG_X=""`, not `# ... is not set`.
+  Check a fragment change quickly with
+  `aember kas-shell kernel -c "bitbake -c configure -f aember-kernel"`.
+  aember's `modules.json` must only list modules that exist as `.ko` or in
+  `modules.builtin`.
+- The kernel must run aember's LXC containers (cgroup2): `base.cfg` enables
+  squashfs (zstd), overlayfs, the memory controller, BPF device control
+  (`BPF_SYSCALL`, `CGROUP_BPF`), veth/bridge, tun, fuse, macvlan, vlan.
+  After a config change, check it with LXC's own script:
+  `CONFIG=yocto/bitbake/tmp/work/<machine>-poky-linux/aember-kernel/1.0/build/.config sh yocto/build/<arch>/virtualization/lxc-checkconfig`
+  (the namespace-limit and cgroup-mount lines describe the host, ignore them).
 - Pin sources with `SRC_URI[sha256sum]` (or `SRCREV`). No `AUTOREV`.
 - Don't add `${PN}-dev`, `${PN}-dbg` and the like to `PACKAGES` yourself, because
   they're already defaults, and a duplicate fails the `packages-list` QA check.

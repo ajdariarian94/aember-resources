@@ -40,9 +40,49 @@ FILES:${KERNEL_PACKAGE_NAME}-modules += "${nonarch_base_libdir}/modules/${KERNEL
 AEMBER_DEPLOY = "${DEPLOYDIR}/aember/kernel"
 
 # ---------------------------------------------------------------------------
+# Config fragments. kernel.bbclass (unlike kernel-yocto) does not merge .cfg
+# files from SRC_URI, so merge them here with the kernel's merge_config.sh,
+# then fail if any requested option did not survive olddefconfig (e.g. an
+# unmet dependency), so a fragment can never be silently ignored again.
+# ---------------------------------------------------------------------------
+AEMBER_KERNEL_FRAGMENTS = "${UNPACKDIR}/base.cfg"
+AEMBER_KERNEL_FRAGMENTS:append:x86-64 = " ${UNPACKDIR}/x64-linux.cfg"
+AEMBER_KERNEL_FRAGMENTS:append:aarch64 = " ${UNPACKDIR}/arm64-linux.cfg"
+
+aember_merge_fragments() {
+    ${S}/scripts/kconfig/merge_config.sh -m -O ${B} ${B}/.config ${AEMBER_KERNEL_FRAGMENTS}
+    oe_runmake -C ${S} O=${B} olddefconfig
+
+    missing=""
+    for frag in ${AEMBER_KERNEL_FRAGMENTS}; do
+        while IFS= read -r line; do
+            case "$line" in
+                CONFIG_*=n)
+                    key=${line%%=*}
+                    grep -q "^${key}=" ${B}/.config && missing="$missing $line"
+                    ;;
+                CONFIG_*=*)
+                    grep -qxF "$line" ${B}/.config || missing="$missing $line"
+                    ;;
+                "# CONFIG_"*" is not set")
+                    key=${line#\# }
+                    key=${key%% *}
+                    grep -q "^${key}=" ${B}/.config && missing="$missing $key=n"
+                    ;;
+            esac
+        done < "$frag"
+    done
+    if [ -n "$missing" ]; then
+        bbfatal "Kernel config fragment options not applied:$missing"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # Force disable certificates & enforce DRM/VirtIO config
 # ---------------------------------------------------------------------------
 do_configure:append() {
+    aember_merge_fragments
+
     cat >> ${B}/.config << 'EOF'
 CONFIG_VIRTIO_MENU=y
 CONFIG_VIRTIO=y
