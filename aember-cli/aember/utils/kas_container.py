@@ -24,10 +24,20 @@ log = logging.getLogger("aember.kas_container")
 CONTAINER_ROOT = "/work"
 WORK_DIR = "yocto"
 BUILD_DIR = "yocto/bitbake"
+# Share of the host CPUs the kas container may use (docker --cpus). Using all
+# cores crashes WSL during big builds. Override with AEMBER_KAS_CPUS=<n>.
+CPU_SHARE = 0.66
 
 
 def host_root(root: Path) -> str:
     return os.environ.get("HOST_ROOT_PATH") or str(root)
+
+
+def cpu_limit() -> str:
+    override = os.environ.get("AEMBER_KAS_CPUS")
+    if override:
+        return override
+    return f"{max(1.0, (os.cpu_count() or 1) * CPU_SHARE):.2f}"
 
 
 def docker_args(root: Path, interactive: bool = False) -> list[str]:
@@ -37,6 +47,7 @@ def docker_args(root: Path, interactive: bool = False) -> list[str]:
     if interactive or sys.stdout.isatty():
         args.append("-t")
     args += [
+        f"--cpus={cpu_limit()}",
         "-v",
         f"{host_root(root)}:{CONTAINER_ROOT}",
         "-w",

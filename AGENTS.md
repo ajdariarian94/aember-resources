@@ -246,6 +246,11 @@ repos together. Naming lives in `config/release.py`.
   adding SDK packages, so they don't bring clang back.
 - `sdk.yml` also caps `BB_NUMBER_THREADS`/`PARALLEL_MAKE`: at 16x16 the big
   C++ compiles got OOM-killed on the 15 GB host.
+- **CPU caps (WSL crashes when a build uses every core):** every kas container
+  runs with `docker --cpus` = 66% of the host CPUs (`CPU_SHARE` in
+  `utils/kas_container.py`, override with `AEMBER_KAS_CPUS=<n>`), and
+  `kas/machine/arm64-linux.yml` sets `PARALLEL_MAKE = "-j 8"` /
+  `BB_NUMBER_THREADS = "8"` for all aarch64 builds. Keep both.
 - The SDK has no `pkg-config`. Poky expects the host's one
   (`nativesdk-sdk-provides-dummy`), so the dev container installs `pkgconf`.
 - Extra target libraries go into the SDK through `TOOLCHAIN_TARGET_TASK` in
