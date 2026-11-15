@@ -356,6 +356,9 @@ python aember-cli/run.py ... # run the CLI without the installed entry point
 
 ## Working agreements for agents
 
+- `TODO.md` (repo root) lists collected ideas and known gaps. Read it for
+  context, but implement an item only when the user asks for it; update it
+  when an item is done or a new one comes up.
 - Commit only when asked, and branch off `main` first.
 - Confirm before deleting or overwriting anything under `yocto/build/`, the
   hashes dir, `resources/` or `build/`. Those are expensive to regenerate.
