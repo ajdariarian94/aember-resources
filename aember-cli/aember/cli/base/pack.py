@@ -15,16 +15,18 @@ def pack(
     components: list[ComponentName] = typer.Argument(
         None, help="Components to pack (default: all)"
     ),
-    architecture: Architecture = typer.Option(
-        Architecture.x64_linux,
+    architectures: list[Architecture] = typer.Option(
+        [Architecture.x64_linux],
         "--arch",
         "-a",
-        help="Target architecture",
+        help="Target architecture (repeatable)",
         case_sensitive=False,
     ),
 ):
     names = [c.value for c in components] if components else list(COMPONENTS)
-    ctx = Context(architecture=architecture.value, root=find_root())
-    Pipeline(
-        [*(PackComponent(get_component(n)) for n in names), WriteReleaseIndex()]
-    ).run(ctx)
+    root = find_root()
+    for arch in architectures:
+        ctx = Context(architecture=arch.value, root=root)
+        Pipeline([PackComponent(get_component(n)) for n in names]).run(ctx)
+    # The index covers everything packed for the version, every architecture
+    Pipeline([WriteReleaseIndex()]).run(Context(root=root))

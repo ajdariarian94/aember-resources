@@ -236,6 +236,8 @@ repos together. Naming lives in `config/release.py`.
   → publish. Only publish when explicitly asked.
 - gh auth: `GITHUB_TOKEN`/`GH_TOKEN` in the env, `GITHUB_TOKEN` in
   `tools/scripts/.env` (`utils/github.load_github_token`), or `gh auth login`.
+  With a `gh auth login`, `init.sh` also runs `gh auth setup-git` at container
+  start, so plain `git push` works.
 
 ### Compilers
 
@@ -327,8 +329,9 @@ Don't "fix" this without asking.
 aember --help                # list commands
 aember -v <cmd>              # verbose (DEBUG) logging
 aember build kernel busybox lxc sdk --arch x64-poky-linux   # CAS-cached kas builds
+aember build kernel busybox lxc sdk -a x64-poky-linux -a arm-poky-linux  # -a is repeatable
 aember build kernel -a aarch64-poky-linux --force            # rebuild ignoring the cache
-aember pack -a x64-poky-linux                                # stage release assets (no upload)
+aember pack -a x64-poky-linux -a aarch64-poky-linux -a arm-poky-linux  # stage release assets (no upload)
 aember publish                                               # upload build/release/v<VERSION>/ to GitHub
 aember kas-shell lxc -a x64-poky-linux                       # bitbake shell in the kas image
 aember lint                  # ruff --fix + black + clang-format + cmake-format/cmakelint
