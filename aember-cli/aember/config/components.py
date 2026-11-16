@@ -17,11 +17,13 @@ KAS_IMAGE = (
 MACHINE_MAP: dict[str, str] = {
     "x64-poky-linux": "x64-linux",
     "aarch64-poky-linux": "arm64-linux",
+    "arm-poky-linux": "arm-linux",
 }
 
 KERNEL_IMAGE_MAP: dict[str, str] = {
     "x64-poky-linux": "bzImage",
     "aarch64-poky-linux": "Image",
+    "arm-poky-linux": "zImage",
 }
 
 

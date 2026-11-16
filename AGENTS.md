@@ -25,8 +25,8 @@ in `meta-aember/` in this repo, and the only external layer is Poky.
 | What           | Path                                                                  |
 |----------------|-----------------------------------------------------------------------|
 | Layer config   | `meta-aember/conf/layer.conf` (`LAYERSERIES_COMPAT = "whinlatter"`)   |
-| Machines       | `meta-aember/conf/machine/{x64-linux,arm64-linux}.conf`               |
-| Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux}.cfg`) |
+| Machines       | `meta-aember/conf/machine/{x64-linux,arm64-linux,arm-linux}.conf`     |
+| Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux,arm-linux}.cfg`) |
 | BusyBox        | `meta-aember/recipes/busybox/aember-busybox.bb` (1.36.1, static, `.cfg` fragments) |
 | LXC            | `meta-aember/recipes/virtualization/aember-lxc.bb` (6.0.2, meson, prctl patch, `.conf` files) |
 | Poky           | cloned by kas into `yocto/poky` from `https://github.com/ajdariarian94/poky.git`, pinned in `kas/base.yml` |
@@ -73,6 +73,13 @@ Recipe rules:
 |-------------------------------|---------------------|-------------|--------------|-------------------------------|
 | `x64-poky-linux`              | `x64-linux`         | `core2-64`  | `bzImage`    | `yocto/build/x64-poky-linux/` |
 | `aarch64-poky-linux`          | `arm64-linux`       | `cortexa72` | `Image`      | `yocto/build/aarch64-poky-linux/` |
+| `arm-poky-linux`              | `arm-linux`         | `armv7athf-neon` | `zImage` | `yocto/build/arm-poky-linux/` |
+
+arm32 is generic ARMv7-A, hard-float, NEON (Thumb-2 packages:
+`armv7at2hf-neon`, toolchain prefix `arm-poky-linux-gnueabi-`), so one build
+runs on Cortex-A7/A9/A15 boards. The kernel is `multi_v7_defconfig` without
+LPAE; that defconfig lacks namespaces and most cgroup controllers, which
+`arm-linux.cfg` adds back (check with `lxc-checkconfig`).
 
 Recipes deploy into `yocto/bitbake/tmp/deploy/images/<machine>/aember/<deploy_name>/`.
 That folder is restored from sstate, so it's always current, even when every
@@ -91,6 +98,7 @@ kas/
   machine/
     x64-linux.yml          # machine: x64-linux
     arm64-linux.yml
+    arm-linux.yml
   recipes/
     kernel.yml             # target: aember-kernel
     busybox.yml            # target: aember-busybox
@@ -238,7 +246,8 @@ repos together. Naming lives in `config/release.py`.
   `yocto/build/<arch>/sdk-installer.sh` (its release asset), then runs it in
   the dev container with `-d yocto/build/<arch>/sdk -y`, so the SDK's
   relocated paths are dev-container paths. The target sysroots are
-  `core2-64-poky-linux` and `cortexa72-poky-linux` (`config/sdk.py`).
+  `core2-64-poky-linux`, `cortexa72-poky-linux` and
+  `armv7at2hf-neon-poky-linux-gnueabi` (`config/sdk.py`).
 - The SDK's QEMU is built headless (`PACKAGECONFIG:remove:pn-nativesdk-qemu`
   in `kas/recipes/sdk.yml`). With poky's `opengl` it pulls SDL, virglrenderer
   and mesa, and mesa needs clang/LLVM built twice (~2 h). Check
@@ -249,8 +258,9 @@ repos together. Naming lives in `config/release.py`.
 - **CPU caps (WSL crashes when a build uses every core):** every kas container
   runs with `docker --cpus` = 66% of the host CPUs (`CPU_SHARE` in
   `utils/kas_container.py`, override with `AEMBER_KAS_CPUS=<n>`), and
-  `kas/machine/arm64-linux.yml` sets `PARALLEL_MAKE = "-j 8"` /
-  `BB_NUMBER_THREADS = "8"` for all aarch64 builds. Keep both.
+  `kas/machine/arm64-linux.yml` and `kas/machine/arm-linux.yml` set
+  `PARALLEL_MAKE = "-j 8"` / `BB_NUMBER_THREADS = "8"` for all aarch64 and
+  arm32 builds. Keep both.
 - The SDK has no `pkg-config`. Poky expects the host's one
   (`nativesdk-sdk-provides-dummy`), so the dev container installs `pkgconf`.
 - Extra target libraries go into the SDK through `TOOLCHAIN_TARGET_TASK` in

@@ -16,6 +16,7 @@ for two architectures:
 |----------------------|---------------|-------------|
 | `x64-poky-linux`     | `x64-linux`   | `core2-64`  |
 | `aarch64-poky-linux` | `arm64-linux` | `cortexa72` |
+| `arm-poky-linux`     | `arm-linux`   | `armv7athf-neon` |
 
 Builds are described with [kas](https://kas.readthedocs.io/) and run inside a
 digest-pinned kas container, so every machine builds in the same environment.
