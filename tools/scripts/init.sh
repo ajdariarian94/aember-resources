@@ -99,6 +99,15 @@ done
 
 sudo rm -rf /root/.config/git
 
+# -----------------------------
+# gh as git credential helper
+# -----------------------------
+# With a gh login (`gh auth login`, once per container), plain `git push`
+# authenticates through gh. Without one, nothing changes.
+if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+    gh auth setup-git >/dev/null 2>&1 || echo "⚠️  gh auth setup-git failed" >&2
+fi
+
 # Mark this container start as initialised
 mkdir -p "$(dirname "$STAMP_FILE")"
 echo "$START_ID" > "$STAMP_FILE"

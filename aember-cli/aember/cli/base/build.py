@@ -18,11 +18,11 @@ def build(
     components: list[ComponentName] = typer.Argument(
         ..., help="Components to build, in order"
     ),
-    architecture: Architecture = typer.Option(
-        Architecture.x64_linux,
+    architectures: list[Architecture] = typer.Option(
+        [Architecture.x64_linux],
         "--arch",
         "-a",
-        help="Target architecture",
+        help="Target architecture (repeatable)",
         case_sensitive=False,
     ),
     force: bool = typer.Option(
@@ -32,5 +32,7 @@ def build(
         help="Rebuild even if the CAS key is unchanged",
     ),
 ):
-    ctx = Context(architecture=architecture.value, force=force, root=find_root())
-    Pipeline(KasBuild(get_component(c.value)) for c in components).run(ctx)
+    root = find_root()
+    for arch in architectures:
+        ctx = Context(architecture=arch.value, force=force, root=root)
+        Pipeline(KasBuild(get_component(c.value)) for c in components).run(ctx)
