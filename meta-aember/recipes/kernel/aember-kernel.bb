@@ -8,12 +8,12 @@ SRC_URI = "https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-6.16.tar.xz"
 SRC_URI[sha256sum] = "1a4be2fe6b5246aa4ac8987a8a4af34c42a8dd7d08b46ab48516bcc1befbcd83"
 
 # Base config for all architectures
-SRC_URI += "file://base.cfg"
+SRC_URI += "file://base.cfg file://trim.cfg"
 
 # Architecture-specific configs
-SRC_URI:append:x86-64  = " file://x64-linux.cfg"
-SRC_URI:append:aarch64 = " file://arm64-linux.cfg"
-SRC_URI:append:arm     = " file://arm-linux.cfg"
+SRC_URI:append:x86-64  = " file://x64-linux.cfg file://trim-x64.cfg"
+SRC_URI:append:aarch64 = " file://arm64-linux.cfg file://trim-arm64.cfg"
+SRC_URI:append:arm     = " file://arm-linux.cfg file://trim-arm.cfg"
 
 KERNEL_DANGLING_FEATURES_WARN_ONLY = "1"
 
@@ -52,9 +52,28 @@ AEMBER_KERNEL_FRAGMENTS:append:x86-64 = " ${UNPACKDIR}/x64-linux.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:aarch64 = " ${UNPACKDIR}/arm64-linux.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:arm = " ${UNPACKDIR}/arm-linux.cfg"
 
+# Size trimming (trim*.cfg): merged before the required fragments, so a
+# required option always wins over a trim. Best effort: a trimmed option that
+# something else still selects only gives a warning (the build stays good,
+# just a little bigger), unlike a required option that didn't apply.
+AEMBER_KERNEL_TRIM = "${UNPACKDIR}/trim.cfg"
+AEMBER_KERNEL_TRIM:append:x86-64 = " ${UNPACKDIR}/trim-x64.cfg"
+AEMBER_KERNEL_TRIM:append:aarch64 = " ${UNPACKDIR}/trim-arm64.cfg"
+AEMBER_KERNEL_TRIM:append:arm = " ${UNPACKDIR}/trim-arm.cfg"
+
 aember_merge_fragments() {
-    ${S}/scripts/kconfig/merge_config.sh -m -O ${B} ${B}/.config ${AEMBER_KERNEL_FRAGMENTS}
+    ${S}/scripts/kconfig/merge_config.sh -m -O ${B} ${B}/.config ${AEMBER_KERNEL_TRIM} ${AEMBER_KERNEL_FRAGMENTS}
     oe_runmake -C ${S} O=${B} olddefconfig
+
+    kept=""
+    for frag in ${AEMBER_KERNEL_TRIM}; do
+        for key in $(sed -n 's/^# \(CONFIG_[A-Za-z0-9_]*\) is not set$/\1/p' "$frag"); do
+            grep -q "^${key}=" ${B}/.config && kept="$kept $key"
+        done
+    done
+    if [ -n "$kept" ]; then
+        bbwarn "Kernel trim options still enabled (selected elsewhere):$kept"
+    fi
 
     missing=""
     for frag in ${AEMBER_KERNEL_FRAGMENTS}; do
@@ -139,6 +158,14 @@ do_deploy:append() {
     if [ -d "${D}${nonarch_base_libdir}/modules" ]; then
         install -d ${AEMBER_DEPLOY}/lib
         cp -r ${D}${nonarch_base_libdir}/modules ${AEMBER_DEPLOY}/lib/
+        # Modules aren't signed, so stripping debug info is safe
+        find ${AEMBER_DEPLOY}/lib/modules -name '*.ko' -exec ${KERNEL_STRIP} --strip-debug {} +
+        # Ship modules.dep & co. so consumers don't run depmod themselves
+        # (kernel.bbclass installs with DEPMOD=echo)
+        for kdir in ${AEMBER_DEPLOY}/lib/modules/*; do
+            depmod -a -b ${AEMBER_DEPLOY} -F ${B}/System.map $(basename $kdir)
+            test -s $kdir/modules.dep || bbfatal "depmod produced no modules.dep in $kdir"
+        done
     fi
 }
 

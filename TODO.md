@@ -20,15 +20,15 @@ an item only when the user says so. aember-side items are in
 
 ## Kernel
 
-- [ ] **Ship `modules.dep`** (and the other depmod outputs) in the kernel asset.
-  aember currently regenerates the dependency list with `depmod -n` while
-  packing.
-- [ ] **Hardening/size:** `DEBUG_FS` and `KALLSYMS` stay on because the
-  defconfig enables tracing (`FTRACE`, `KPROBES`, `BLK_DEV_IO_TRACE`), which
-  selects both. Turning them off means disabling tracing in the fragment
-  (decide what debugging aember still needs).
-- [ ] Consider a smaller base than `x86_64_defconfig` (it has many drivers
-  aember never uses); the configure check makes trimming safe.
+- [x] **Ship `modules.dep`** and the other depmod outputs in the kernel
+  asset (v0.1.4); modules are stripped.
+- [x] **Smaller kernels** (v0.1.4): `trim.cfg` + `trim-<arch>.cfg` remove
+  tracing/debug info and subsystems and platforms aember doesn't use.
+- [ ] Trim further: `RPMSG` (and `ARCH_BCM_MOBILE` on arm32) are still
+  selected by something; x64 keeps `i915` (provides `DRM_TTM`, needed for
+  real Intel boxes). A tinyconfig-based kernel would be smaller still.
+- [ ] aarch64 ships an uncompressed `Image` (19.5 MB, 8.5 MB gzipped);
+  `Image.gz` would need aember's packer and the RPi boot config to follow.
 - [ ] Optional LXC features `lxc-checkconfig` still reports missing:
   `IP6_NF_TARGET_MASQUERADE` (IPv6 NAT for containers) and
   checkpoint/restore (`*_DIAG`). Only if needed.
