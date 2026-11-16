@@ -1,0 +1,14 @@
+# Target machine: arm-linux (32-bit ARMv7-A)
+header:
+  version: 23
+
+machine: arm-linux
+
+local_conf_header:
+  aember-arm-parallelism: |
+    # WSL crashes when a build uses every core. Cap make jobs and concurrent
+    # bitbake tasks; the kas container is also CPU-capped
+    # (aember/utils/kas_container.py). PARALLEL_MAKE and BB_NUMBER_THREADS
+    # are not part of task signatures, so sstate is still reused.
+    BB_NUMBER_THREADS = "8"
+    PARALLEL_MAKE = "-j 8"

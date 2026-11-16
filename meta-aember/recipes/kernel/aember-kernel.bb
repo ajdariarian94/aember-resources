@@ -13,6 +13,7 @@ SRC_URI += "file://base.cfg"
 # Architecture-specific configs
 SRC_URI:append:x86-64  = " file://x64-linux.cfg"
 SRC_URI:append:aarch64 = " file://arm64-linux.cfg"
+SRC_URI:append:arm     = " file://arm-linux.cfg"
 
 KERNEL_DANGLING_FEATURES_WARN_ONLY = "1"
 
@@ -26,6 +27,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-aember:"
 # Architecture-specific default configs
 KBUILD_DEFCONFIG:x86-64  = "x86_64_defconfig"
 KBUILD_DEFCONFIG:aarch64 = "defconfig"
+KBUILD_DEFCONFIG:arm     = "multi_v7_defconfig"
 
 # Include modern kbuild module metadata (such as modules.builtin.ranges)
 FILES:${KERNEL_PACKAGE_NAME}-modules += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/modules.builtin*"
@@ -48,6 +50,7 @@ AEMBER_DEPLOY = "${DEPLOYDIR}/aember/kernel"
 AEMBER_KERNEL_FRAGMENTS = "${UNPACKDIR}/base.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:x86-64 = " ${UNPACKDIR}/x64-linux.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:aarch64 = " ${UNPACKDIR}/arm64-linux.cfg"
+AEMBER_KERNEL_FRAGMENTS:append:arm = " ${UNPACKDIR}/arm-linux.cfg"
 
 aember_merge_fragments() {
     ${S}/scripts/kconfig/merge_config.sh -m -O ${B} ${B}/.config ${AEMBER_KERNEL_FRAGMENTS}
@@ -141,4 +144,4 @@ do_deploy:append() {
 
 INSANE_SKIP += "buildpaths"
 
-COMPATIBLE_MACHINE = "x64-linux|arm64-linux"
+COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux"

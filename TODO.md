@@ -11,14 +11,14 @@ an item only when the user says so. aember-side items are in
 
 - [x] **aarch64 (Raspberry Pi 4, Cortex-A72):** kernel, BusyBox, LXC and SDK
   for `aarch64-poky-linux` released in v0.1.2; aember boots them in QEMU.
-- [ ] aarch64: run `lxc-checkconfig` against the arm64 kernel `.config`
-  (only the configure check has been run so far).
 - [ ] `aember pack` takes a single `-a`; a second one silently replaces the
   first. Accept several architectures.
-- [ ] **arm32 (ARMv7, `arm-poky-linux`)** after aarch64: machine conf and
-  `kas/machine/` file, kernel and BusyBox fragments (BusyBox already has an
-  `arm-linux.cfg` hook), LXC conf, `config/` entries (machine, kernel image
-  `zImage`, SDK sysroot), assets in the release. Own branch.
+- [x] **arm32 (ARMv7-A hf NEON, `arm-poky-linux`):** kernel, BusyBox, LXC and
+  SDK released in v0.1.3; aember boots them in QEMU (`virt`, Cortex-A15).
+  `lxc-checkconfig` is clean on x64, arm64 and arm (only the optional items
+  below are missing).
+- [ ] arm32 on real boards needs their device trees (`KERNEL_DEVICETREE`) and
+  a bootloader story; only QEMU `virt` is tested.
 
 ## Kernel
 

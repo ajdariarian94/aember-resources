@@ -11,6 +11,7 @@ SRC_URI += " \
     file://base.conf \
     file://x64-linux.conf \
     file://arm64-linux.conf \
+    file://arm-linux.conf \
     file://0001-lxccontainer-prctl-fallback.patch \
 "
 
@@ -49,6 +50,8 @@ do_install:append() {
         install -m 0644 ${WORKDIR}/sources/x64-linux.conf ${D}${sysconfdir}/lxc/arch.conf
     elif [ "${TARGET_ARCH}" = "aarch64" ]; then
         install -m 0644 ${WORKDIR}/sources/arm64-linux.conf ${D}${sysconfdir}/lxc/arch.conf
+    elif [ "${TARGET_ARCH}" = "arm" ]; then
+        install -m 0644 ${WORKDIR}/sources/arm-linux.conf ${D}${sysconfdir}/lxc/arch.conf
     fi
 
     install -d ${D}${localstatedir}/lib/lxc
