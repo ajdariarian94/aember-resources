@@ -57,6 +57,17 @@ Recipe rules:
   `aember kas-shell kernel -c "bitbake -c configure -f aember-kernel"`.
   aember's `modules.json` must only list modules that exist as `.ko` or in
   `modules.builtin`.
+- Kernel size: `trim.cfg` + `trim-<arch>.cfg` turn off what appliances
+  don't use (sound, Wi-Fi/BT, media, staging, network filesystems, KVM,
+  tracing, debug info, unused NIC vendors, and on ARM every SoC platform
+  except QEMU virt, Raspberry Pi (BCM2835) and, on arm32, i.MX and STM32).
+  They are merged **before** the required fragments (a required option
+  always wins) and are best effort: an option something else still selects
+  only gives a `bbwarn`, not a failure. Needing a trimmed driver back
+  (another board, a NIC): add it to the arch's required fragment.
+- The kernel asset ships stripped modules (`--strip-debug`, modules aren't
+  signed) and the depmod output (`modules.dep`, `modules.alias`, ...),
+  generated in `do_deploy`; aember reads `modules.dep` from it.
 - The kernel must run aember's LXC containers (cgroup2): `base.cfg` enables
   squashfs (zstd), overlayfs, the memory controller, BPF device control
   (`BPF_SYSCALL`, `CGROUP_BPF`), veth/bridge, tun, fuse, macvlan, vlan.
