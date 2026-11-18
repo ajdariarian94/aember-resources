@@ -29,6 +29,11 @@ KBUILD_DEFCONFIG:x86-64  = "x86_64_defconfig"
 KBUILD_DEFCONFIG:aarch64 = "defconfig"
 KBUILD_DEFCONFIG:arm     = "multi_v7_defconfig"
 
+# Device trees shipped in the kernel asset (dtb/): the Raspberry Pi 4 board
+# aember targets, and the Pi 3 one (QEMU's raspi3b can boot it, so the
+# Raspberry Pi boot path is testable without hardware).
+KERNEL_DEVICETREE:aarch64 = "broadcom/bcm2711-rpi-4-b.dtb broadcom/bcm2837-rpi-3-b.dtb"
+
 # Include modern kbuild module metadata (such as modules.builtin.ranges)
 FILES:${KERNEL_PACKAGE_NAME}-modules += "${nonarch_base_libdir}/modules/${KERNEL_VERSION}/modules.builtin*"
 
@@ -151,9 +156,11 @@ do_deploy:append() {
     install -m 0644 ${B}/Module.symvers ${AEMBER_DEPLOY}/
     install -m 0644 ${B}/kernel-build-manifest.txt ${AEMBER_DEPLOY}/
 
-    if [ -d "${DEPLOYDIR}/dtb" ]; then
-        cp -r ${DEPLOYDIR}/dtb ${AEMBER_DEPLOY}/
-    fi
+    # kernel-devicetree installs the dtbs flat under KERNEL_DTBDEST
+    for dtbf in ${KERNEL_DEVICETREE}; do
+        install -Dm 0644 ${D}/${KERNEL_DTBDEST}/$(basename $dtbf) \
+            ${AEMBER_DEPLOY}/dtb/$(basename $dtbf)
+    done
 
     if [ -d "${D}${nonarch_base_libdir}/modules" ]; then
         install -d ${AEMBER_DEPLOY}/lib
