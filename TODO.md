@@ -27,6 +27,8 @@ an item only when the user says so. aember-side items are in
 - [ ] Trim further: `RPMSG` (and `ARCH_BCM_MOBILE` on arm32) are still
   selected by something; x64 keeps `i915` (provides `DRM_TTM`, needed for
   real Intel boxes). A tinyconfig-based kernel would be smaller still.
+- [x] Raspberry Pi 4 device tree and built-in Pi drivers (v0.1.5).
+- [ ] Pi 4 HDMI console: `DRM_VC4` (+ its modules) isn't enabled yet.
 - [ ] aarch64 ships an uncompressed `Image` (19.5 MB, 8.5 MB gzipped);
   `Image.gz` would need aember's packer and the RPi boot config to follow.
 - [ ] Optional LXC features `lxc-checkconfig` still reports missing:

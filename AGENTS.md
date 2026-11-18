@@ -65,6 +65,13 @@ Recipe rules:
   always wins) and are best effort: an option something else still selects
   only gives a `bbwarn`, not a failure. Needing a trimmed driver back
   (another board, a NIC): add it to the arch's required fragment.
+- aarch64 ships device trees in `kernel/dtb/` (`KERNEL_DEVICETREE:aarch64`:
+  Raspberry Pi 4 `bcm2711-rpi-4-b.dtb`, and Pi 3 `bcm2837-rpi-3-b.dtb` for
+  aember's QEMU raspi3b test). What the Pi needs before the root switch
+  (aember loads modules only afterwards) is built in by `arm64-linux.cfg`:
+  firmware/mailbox/clocks (`CLK_RASPBERRYPI`), SD (`MMC_SDHCI_IPROC`,
+  `MMC_BCM2835`), the mini UART, plus Ethernet (`BCMGENET`), USB
+  (`PCIE_BRCMSTB`), thermal, cpufreq, watchdog.
 - The kernel asset ships stripped modules (`--strip-debug`, modules aren't
   signed) and the depmod output (`modules.dep`, `modules.alias`, ...),
   generated in `do_deploy`; aember reads `modules.dep` from it.
