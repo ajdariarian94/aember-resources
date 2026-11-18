@@ -20,6 +20,8 @@ an item only when the user says so. aember-side items are in
 
 ## Kernel
 
+- [x] **QEMU watchdog** (`I6300ESB_WDT`) in every kernel (v0.1.6), for
+  aember's watchdog tests.
 - [x] **Ship `modules.dep`** and the other depmod outputs in the kernel
   asset (v0.1.4); modules are stripped.
 - [x] **Smaller kernels** (v0.1.4): `trim.cfg` + `trim-<arch>.cfg` remove
