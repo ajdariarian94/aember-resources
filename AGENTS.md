@@ -75,6 +75,9 @@ Recipe rules:
 - The kernel asset ships stripped modules (`--strip-debug`, modules aren't
   signed) and the depmod output (`modules.dep`, `modules.alias`, ...),
   generated in `do_deploy`; aember reads `modules.dep` from it.
+- Watchdog: `base.cfg` builds in the watchdog core and `I6300ESB_WDT`
+  (QEMU's PCI watchdog, `-device i6300esb`), so aember's watchdog,
+  reset included, is testable in QEMU on every architecture (v0.1.6).
 - The kernel must run aember's LXC containers (cgroup2): `base.cfg` enables
   squashfs (zstd), overlayfs, the memory controller, BPF device control
   (`BPF_SYSCALL`, `CGROUP_BPF`), veth/bridge, tun, fuse, macvlan, vlan.
