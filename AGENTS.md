@@ -78,6 +78,14 @@ Recipe rules:
 - Watchdog: `base.cfg` builds in the watchdog core and `I6300ESB_WDT`
   (QEMU's PCI watchdog, `-device i6300esb`), so aember's watchdog,
   reset included, is testable in QEMU on every architecture (v0.1.6).
+- x64 PC hardware (v0.1.7, for aember's bootable USB stick image):
+  `x64-linux.cfg` builds in the UEFI framebuffer (`FB_EFI`: screen
+  console and `/dev/fb0` on any GPU the firmware set up, also AMD/NVIDIA
+  and QEMU's VGA, which have no DRM driver here), Realtek (`R8169`) and
+  Intel (`IGB`, `IGC`, besides e1000/e1000e) NICs, NVMe, and the chipset
+  watchdogs `ITCO_WDT` (+ `LPC_ICH`) and `SP5100_TCO`.
+  `NET_VENDOR_REALTEK` is no longer trimmed on x64. The x86_64 defconfig
+  already has the EFI stub, xHCI/EHCI, USB storage, AHCI and USB HID.
 - The kernel must run aember's LXC containers (cgroup2): `base.cfg` enables
   squashfs (zstd), overlayfs, the memory controller, BPF device control
   (`BPF_SYSCALL`, `CGROUP_BPF`), veth/bridge, tun, fuse, macvlan, vlan.
