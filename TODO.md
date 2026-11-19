@@ -22,6 +22,11 @@ an item only when the user says so. aember-side items are in
 
 - [x] **QEMU watchdog** (`I6300ESB_WDT`) in every kernel (v0.1.6), for
   aember's watchdog tests.
+- [x] **x64 PC hardware** (v0.1.7): UEFI framebuffer, Realtek/Intel NICs,
+  NVMe, iTCO/SP5100 watchdogs, for aember's USB stick image. Tested in
+  QEMU (OVMF, USB stick, e1000e); not yet on a real PC.
+- [ ] x64 Wi-Fi and firmware files (`linux-firmware`: r8169 PHY patches,
+  i915 DMC) are not shipped; Realtek NICs mostly work without.
 - [x] **Ship `modules.dep`** and the other depmod outputs in the kernel
   asset (v0.1.4); modules are stripped.
 - [x] **Smaller kernels** (v0.1.4): `trim.cfg` + `trim-<arch>.cfg` remove
