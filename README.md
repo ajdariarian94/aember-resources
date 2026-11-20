@@ -21,6 +21,7 @@ for four architectures, plus opt-in musl variants:
 | `x64-poky-linux-musl` | `x64-linux` + musl | `core2-64` | as x64; musl C library (smaller images, no sanitizers) |
 | `aarch64-poky-linux-musl` | `arm64-linux` + musl | `cortexa53` | as aarch64, with musl |
 | `arm-poky-linux-musl` | `arm-linux` + musl | `armv7athf-neon` | as arm32, with musl (musleabi hard-float) |
+| `riscv64-poky-linux-musl` | `riscv64-linux` + musl | `riscv64` | as riscv64, with musl |
 
 The SDKs also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
 libtsan where GCC has them), for aember's sanitizer test builds.
