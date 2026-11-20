@@ -10,13 +10,17 @@ embedded-Linux system:
 | LXC       | `meta-aember/recipes/virtualization/aember-lxc.bb` | LXC 6.0.2 tools, `liblxc.so`, headers, relocatable `lxc.pc`   |
 | SDK       | `core-image-minimal -c populate_sdk`               | Poky cross toolchain (GCC 15, C++23) and target sysroot       |
 
-for two architectures:
+for four architectures:
 
-| Architecture         | Machine       | Tune        |
-|----------------------|---------------|-------------|
-| `x64-poky-linux`     | `x64-linux`   | `core2-64`  |
-| `aarch64-poky-linux` | `arm64-linux` | `cortexa72` |
-| `arm-poky-linux`     | `arm-linux`   | `armv7athf-neon` |
+| Architecture         | Machine         | Tune             | Runs on |
+|----------------------|-----------------|------------------|---------|
+| `x64-poky-linux`     | `x64-linux`     | `core2-64`       | PCs, QEMU |
+| `aarch64-poky-linux` | `arm64-linux`   | `cortexa53`      | every 64-bit Arm board: Raspberry Pi 3/4/Zero 2 W, i.MX8, Rockchip, QEMU `virt` |
+| `arm-poky-linux`     | `arm-linux`     | `armv7athf-neon` | ARMv7-A boards (Cortex-A7/A9/A15), QEMU `virt` |
+| `riscv64-poky-linux` | `riscv64-linux` | `riscv64` (RV64GC) | QEMU `virt`, StarFive VisionFive 2, Milk-V |
+
+The SDKs also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
+libtsan where GCC has them), for aember's sanitizer test builds.
 
 Builds are described with [kas](https://kas.readthedocs.io/) and run inside a
 digest-pinned kas container, so every machine builds in the same environment.
@@ -109,3 +113,10 @@ yocto/           (git-ignored) kas work dir: poky, bitbake, downloads, sstate, a
 
 See [AGENTS.md](AGENTS.md) for detailed conventions, which also serves as the
 guide for AI coding agents.
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs the CLI's tests (including
+the check that every architecture is complete: machine, kas file, kernel,
+BusyBox and LXC configuration, recipes, SDK maps) and lint on every push and
+pull request. The Yocto builds themselves are too big for a hosted runner.

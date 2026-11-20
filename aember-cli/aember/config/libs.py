@@ -19,7 +19,7 @@ ARCH_CONFIG = {
     },
     "aarch64-poky-linux": {
         "poky_sysroot": Path(
-            "/aember_ws/aember/yocto/build/aarch64-poky-linux/sdk/sysroots/cortexa72-poky-linux"
+            "/aember_ws/aember/yocto/build/aarch64-poky-linux/sdk/sysroots/cortexa53-poky-linux"
         ),
         "virt_libs": Path(
             "/aember_ws/aember/yocto/build/aarch64-poky-linux/virtualization/libs"

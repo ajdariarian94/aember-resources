@@ -11,6 +11,13 @@ local_conf_header:
     # Ship liblxc, its headers and lxc.pc in the SDK target sysroot so C++
     # code can build against LXC (aember-lxc-dev pulls in aember-lxc).
     TOOLCHAIN_TARGET_TASK:append = " aember-lxc-dev"
+  aember-sdk-sanitizers: |
+    # GCC's sanitizer runtimes (libasan, libubsan; liblsan and libtsan where
+    # GCC supports them: not on arm32) in the target sysroot, so aember's
+    # tests build and run with -fsanitize=address,undefined / thread
+    # (`aember test --sanitize`). The SDK's dev-pkgs feature adds their -dev
+    # packages (link-time .so symlinks).
+    TOOLCHAIN_TARGET_TASK:append = " gcc-sanitizers"
   aember-sdk-headless-qemu: |
     # The SDK's QEMU links SDL, virglrenderer and epoxy because poky enables
     # opengl. They pull nativesdk-mesa, which needs clang/LLVM twice (native

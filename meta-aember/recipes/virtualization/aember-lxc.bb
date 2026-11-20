@@ -12,6 +12,7 @@ SRC_URI += " \
     file://x64-linux.conf \
     file://arm64-linux.conf \
     file://arm-linux.conf \
+    file://riscv64-linux.conf \
     file://0001-lxccontainer-prctl-fallback.patch \
 "
 
@@ -52,6 +53,8 @@ do_install:append() {
         install -m 0644 ${WORKDIR}/sources/arm64-linux.conf ${D}${sysconfdir}/lxc/arch.conf
     elif [ "${TARGET_ARCH}" = "arm" ]; then
         install -m 0644 ${WORKDIR}/sources/arm-linux.conf ${D}${sysconfdir}/lxc/arch.conf
+    elif [ "${TARGET_ARCH}" = "riscv64" ]; then
+        install -m 0644 ${WORKDIR}/sources/riscv64-linux.conf ${D}${sysconfdir}/lxc/arch.conf
     fi
 
     install -d ${D}${localstatedir}/lib/lxc
@@ -151,4 +154,4 @@ INSANE_SKIP:${PN} += "buildpaths file-rdeps"
 INSANE_SKIP:${PN}-templates += "file-rdeps"
 INSANE_SKIP:${PN}-dev += "buildpaths"
 
-COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux"
+COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux|riscv64-linux"

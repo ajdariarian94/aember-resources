@@ -17,6 +17,7 @@ SRC_URI += "file://base.cfg"
 SRC_URI:append:x86-64 = " file://x64-linux.cfg"
 SRC_URI:append:aarch64 = " file://arm64-linux.cfg"
 SRC_URI:append:arm = " file://arm-linux.cfg"
+SRC_URI:append:riscv64 = " file://riscv64-linux.cfg"
 
 # ---- Important fix: sources must be relative to UNPACKDIR ----
 S = "${UNPACKDIR}/busybox-${PV}"
@@ -69,6 +70,8 @@ do_configure() {
         merge_cfg ${UNPACKDIR}/arm64-linux.cfg
     elif [ "${TARGET_ARCH}" = "arm" ]; then
         merge_cfg ${UNPACKDIR}/arm-linux.cfg
+    elif [ "${TARGET_ARCH}" = "riscv64" ]; then
+        merge_cfg ${UNPACKDIR}/riscv64-linux.cfg
     fi
 
     if [ "${TARGET_ARCH}" = "arm" ]; then
@@ -131,4 +134,4 @@ addtask deploy after do_compile before do_build
 INSANE_SKIP:${PN} += "buildpaths already-stripped"
 
 # ---- Compatible machines (mirrors kernel recipe) ----
-COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux"
+COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux|riscv64-linux"

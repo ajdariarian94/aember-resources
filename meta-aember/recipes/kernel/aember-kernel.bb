@@ -14,6 +14,7 @@ SRC_URI += "file://base.cfg file://trim.cfg"
 SRC_URI:append:x86-64  = " file://x64-linux.cfg file://trim-x64.cfg"
 SRC_URI:append:aarch64 = " file://arm64-linux.cfg file://trim-arm64.cfg"
 SRC_URI:append:arm     = " file://arm-linux.cfg file://trim-arm.cfg"
+SRC_URI:append:riscv64 = " file://riscv64-linux.cfg file://trim-riscv64.cfg"
 
 KERNEL_DANGLING_FEATURES_WARN_ONLY = "1"
 
@@ -28,6 +29,7 @@ FILESEXTRAPATHS:prepend := "${THISDIR}/linux-aember:"
 KBUILD_DEFCONFIG:x86-64  = "x86_64_defconfig"
 KBUILD_DEFCONFIG:aarch64 = "defconfig"
 KBUILD_DEFCONFIG:arm     = "multi_v7_defconfig"
+KBUILD_DEFCONFIG:riscv64 = "defconfig"
 
 # Device trees shipped in the kernel asset (dtb/): the Raspberry Pi 4 board
 # aember targets, and the Pi 3 one (QEMU's raspi3b can boot it, so the
@@ -56,6 +58,7 @@ AEMBER_KERNEL_FRAGMENTS = "${UNPACKDIR}/base.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:x86-64 = " ${UNPACKDIR}/x64-linux.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:aarch64 = " ${UNPACKDIR}/arm64-linux.cfg"
 AEMBER_KERNEL_FRAGMENTS:append:arm = " ${UNPACKDIR}/arm-linux.cfg"
+AEMBER_KERNEL_FRAGMENTS:append:riscv64 = " ${UNPACKDIR}/riscv64-linux.cfg"
 
 # Size trimming (trim*.cfg): merged before the required fragments, so a
 # required option always wins over a trim. Best effort: a trimmed option that
@@ -65,6 +68,7 @@ AEMBER_KERNEL_TRIM = "${UNPACKDIR}/trim.cfg"
 AEMBER_KERNEL_TRIM:append:x86-64 = " ${UNPACKDIR}/trim-x64.cfg"
 AEMBER_KERNEL_TRIM:append:aarch64 = " ${UNPACKDIR}/trim-arm64.cfg"
 AEMBER_KERNEL_TRIM:append:arm = " ${UNPACKDIR}/trim-arm.cfg"
+AEMBER_KERNEL_TRIM:append:riscv64 = " ${UNPACKDIR}/trim-riscv64.cfg"
 
 aember_merge_fragments() {
     ${S}/scripts/kconfig/merge_config.sh -m -O ${B} ${B}/.config ${AEMBER_KERNEL_TRIM} ${AEMBER_KERNEL_FRAGMENTS}
@@ -178,4 +182,4 @@ do_deploy:append() {
 
 INSANE_SKIP += "buildpaths"
 
-COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux"
+COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux|riscv64-linux"

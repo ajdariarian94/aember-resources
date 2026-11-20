@@ -25,8 +25,8 @@ in `meta-aember/` in this repo, and the only external layer is Poky.
 | What           | Path                                                                  |
 |----------------|-----------------------------------------------------------------------|
 | Layer config   | `meta-aember/conf/layer.conf` (`LAYERSERIES_COMPAT = "whinlatter"`)   |
-| Machines       | `meta-aember/conf/machine/{x64-linux,arm64-linux,arm-linux}.conf`     |
-| Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux,arm-linux}.cfg`) |
+| Machines       | `meta-aember/conf/machine/{x64-linux,arm64-linux,arm-linux,riscv64-linux}.conf` |
+| Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux,arm-linux,riscv64-linux}.cfg`) |
 | BusyBox        | `meta-aember/recipes/busybox/aember-busybox.bb` (1.36.1, static, `.cfg` fragments) |
 | LXC            | `meta-aember/recipes/virtualization/aember-lxc.bb` (6.0.2, meson, prctl patch, `.conf` files) |
 | Poky           | cloned by kas into `yocto/poky` from `https://github.com/ajdariarian94/poky.git`, pinned in `kas/base.yml` |
@@ -101,8 +101,26 @@ Recipe rules:
 | Arch key (`ctx.architecture`) | kas/Yocto `machine` | Tune        | Kernel image | Artifact dir                  |
 |-------------------------------|---------------------|-------------|--------------|-------------------------------|
 | `x64-poky-linux`              | `x64-linux`         | `core2-64`  | `bzImage`    | `yocto/build/x64-poky-linux/` |
-| `aarch64-poky-linux`          | `arm64-linux`       | `cortexa72` | `Image`      | `yocto/build/aarch64-poky-linux/` |
+| `aarch64-poky-linux`          | `arm64-linux`       | `cortexa53` | `Image`      | `yocto/build/aarch64-poky-linux/` |
 | `arm-poky-linux`              | `arm-linux`         | `armv7athf-neon` | `zImage` | `yocto/build/arm-poky-linux/` |
+| `riscv64-poky-linux`          | `riscv64-linux`     | `riscv64`   | `Image`      | `yocto/build/riscv64-poky-linux/` |
+
+aarch64 is generic ARMv8.0-A (`cortexa53` tune since v0.1.8; it was
+`cortexa72`, the Pi 4 only): one build for every 64-bit Arm board, the Pi 4
+included (A53 code runs on the A72). The SDK's target sysroot is
+`cortexa53-poky-linux`.
+
+riscv64 (v0.1.8) is RV64GC, the baseline Linux distributions use: the
+`riscv` defconfig (QEMU `virt`, SiFive, StarFive) plus `riscv64-linux.cfg`
+(16550 console `ttyS0`, containers, virtio/PCIe, e1000e) and
+`trim-riscv64.cfg`. QEMU: `-machine virt` with its built-in OpenSBI
+(`-bios default`). `riscv64-linux.cfg` enables the trusted keyring because
+`base.cfg` empties `SYSTEM_TRUSTED_KEYS`, which needs it; the riscv
+defconfig has no module signing. Validate a fragment before a build:
+`make ARCH=riscv defconfig`, `scripts/kconfig/merge_config.sh` with the
+trims and fragments, `olddefconfig`, then check each option survived (the
+recipe's `aember_merge_fragments` fails the build otherwise, but only after
+the cross compiler is built).
 
 arm32 is generic ARMv7-A, hard-float, NEON (Thumb-2 packages:
 `armv7at2hf-neon`, toolchain prefix `arm-poky-linux-gnueabi-`), so one build
@@ -277,8 +295,9 @@ repos together. Naming lives in `config/release.py`.
   `yocto/build/<arch>/sdk-installer.sh` (its release asset), then runs it in
   the dev container with `-d yocto/build/<arch>/sdk -y`, so the SDK's
   relocated paths are dev-container paths. The target sysroots are
-  `core2-64-poky-linux`, `cortexa72-poky-linux` and
-  `armv7at2hf-neon-poky-linux-gnueabi` (`config/sdk.py`).
+  `core2-64-poky-linux`, `cortexa53-poky-linux`,
+  `armv7at2hf-neon-poky-linux-gnueabi` and `riscv64imafdc-poky-linux` (tune `riscv64`)
+  (`config/sdk.py`).
 - The SDK's QEMU is built headless (`PACKAGECONFIG:remove:pn-nativesdk-qemu`
   in `kas/recipes/sdk.yml`). With poky's `opengl` it pulls SDL, virglrenderer
   and mesa, and mesa needs clang/LLVM built twice (~2 h). Check
@@ -289,14 +308,16 @@ repos together. Naming lives in `config/release.py`.
 - **CPU caps (WSL crashes when a build uses every core):** every kas container
   runs with `docker --cpus` = 66% of the host CPUs (`CPU_SHARE` in
   `utils/kas_container.py`, override with `AEMBER_KAS_CPUS=<n>`), and
-  `kas/machine/arm64-linux.yml` and `kas/machine/arm-linux.yml` set
-  `PARALLEL_MAKE = "-j 8"` / `BB_NUMBER_THREADS = "8"` for all aarch64 and
-  arm32 builds. Keep both.
+  `kas/machine/arm64-linux.yml`, `arm-linux.yml` and `riscv64-linux.yml`
+  set `PARALLEL_MAKE = "-j 8"` / `BB_NUMBER_THREADS = "8"` for all their
+  builds. Keep both.
 - The SDK has no `pkg-config`. Poky expects the host's one
   (`nativesdk-sdk-provides-dummy`), so the dev container installs `pkgconf`.
 - Extra target libraries go into the SDK through `TOOLCHAIN_TARGET_TASK` in
-  `kas/recipes/sdk.yml` (currently `aember-lxc-dev`: liblxc, headers,
-  `lxc.pc`). Use it with
+  `kas/recipes/sdk.yml`: `aember-lxc-dev` (liblxc, headers, `lxc.pc`) and
+  `gcc-sanitizers` (v0.1.8: libasan, libubsan; liblsan and libtsan except on
+  arm32; the SDK's dev-pkgs add the link-time `.so` and `*_preinit.o`) for
+  aember's `aember test --sanitize`. Use it with
   `source yocto/build/<arch>/sdk/environment-setup-<tune>-poky-linux`.
 - **No gcc-reflection** and no other custom GCC builds. That's a deliberate
   decision, so don't reintroduce it.
@@ -312,11 +333,13 @@ aember-cli/             Python CLI (`aember`), installed editable in /venv
   aember/steps/release/ PackComponent, WriteReleaseIndex, PublishRelease
   aember/steps/linting/ LintStep
   aember/config/        components.py (kas chains), release.py (asset names), arch, SDK, QEMU, libs/modules
+  tests/                unittest: test_architectures.py (every arch complete everywhere)
   aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, archive (zip), github, root, runner
 kas/                    kas YAML files (see above)
 meta-aember/            Yocto layer: machines + kernel/busybox/lxc recipes
 hashes/<arch>/          Committed CAS keys of released artifacts
 VERSION                 Release version (x.y.z)
+.github/workflows/      ci.yml: CLI tests + lint on push and pull requests
 tools/scripts/          init.sh (container postStart), prerequisites.sh (host setup)
 requirements.txt        Python tooling pinned for the venv (incl. kas)
 yocto/                  git-ignored kas work dir: poky/ clone, bitbake/,
@@ -368,6 +391,12 @@ python aember-cli/run.py ... # run the CLI without the installed entry point
 ```
 
 ## Coding conventions (aember-cli)
+
+- Tests: `cd aember-cli && python -m unittest discover -s tests` (stdlib).
+  A new architecture must pass `tests/test_architectures.py` before its
+  first Yocto build: it checks the CLI maps, kas and Yocto machine files,
+  the kernel/BusyBox/LXC configuration and every recipe's
+  `COMPATIBLE_MACHINE`.
 
 - Python ≥ 3.10 syntax. Line length is 88, formatting is **black**, linting is
   **ruff**, isort uses the `black` profile. Run `aember lint` before finishing.
