@@ -43,6 +43,10 @@ an item only when the user says so. aember-side items are in
   every consumer gets the small one; aember strips it in Release images
   (4.8 MB -> 1.1 MB). The lxc-* tools could go too (not used by aember).
 
+- [x] **Qt 6 (minimal qtbase) in every SDK** (v0.1.13) for aember-monitor.
+- [ ] Qt input (libinput/evdev) and fontconfig if a UI needs touch or many
+  fonts: `PACKAGECONFIG:pn-qtbase` in `kas/recipes/sdk.yml`.
+
 ## Kernel
 
 - [x] **QEMU watchdog** (`I6300ESB_WDT`) in every kernel (v0.1.6), for

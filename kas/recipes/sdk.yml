@@ -6,6 +6,23 @@ header:
 target: core-image-minimal
 task: populate_sdk
 
+# Qt for aember-monitor (and any other Qt app): only the SDK builds get these
+# layers, so the kernel, BusyBox and LXC keys don't change. Pinned close to
+# poky's commit (2025-08-14): meta-qt6 6.10 still declares compatibility
+# from kirkstone to whinlatter.
+repos:
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: master
+    commit: df6a14a27c81675f31da3c488d35f07ee413afb5
+    layers:
+      meta-oe:
+      meta-python:
+  meta-qt6:
+    url: https://code.qt.io/yocto/meta-qt6.git
+    branch: "6.10"
+    commit: dde433960e840b342cd9005e66637b7057dcb011
+
 local_conf_header:
   aember-sdk: |
     # Ship liblxc, its headers and lxc.pc in the SDK target sysroot so C++
@@ -30,3 +47,23 @@ local_conf_header:
     # and make jobs so the build fits in memory.
     BB_NUMBER_THREADS = "4"
     PARALLEL_MAKE = "-j 8"
+  aember-sdk-qt: |
+    # A minimal Qt 6 (qtbase) in every SDK, for small framebuffer UIs such
+    # as aember-monitor: Core + Gui with the linuxfb platform plugin and the
+    # raster paint engine. No OpenGL, widgets, ICU, DBus, fontconfig, input
+    # stack or OpenSSL: the app ships its own font. moc/rcc for the host come
+    # from nativesdk-qtbase-tools.
+    PACKAGECONFIG:pn-qtbase = "gui linuxfb no-opengl png zlib"
+    # Poky's ptest would build Qt's whole autotest suite (thousands of
+    # binaries, hours per architecture) for an SDK that never ships them.
+    QT_PTEST_ENABLED = "0"
+    TOOLCHAIN_TARGET_TASK:append = " qtbase qtbase-dev qtbase-plugins"
+    TOOLCHAIN_HOST_TASK:append = " nativesdk-qtbase-tools nativesdk-qtbase-dev"
+  aember-sdk-qt-memory: |
+    # Qt's C++ compiles take up to ~1 GB per cc1plus, and qtbase,
+    # qtbase-native and nativesdk-qtbase can build at the same time: four
+    # jobs each keeps the peak well inside the 15 GB WSL (PARALLEL_MAKE is
+    # not part of task signatures).
+    PARALLEL_MAKE:pn-qtbase = "-j 4"
+    PARALLEL_MAKE:pn-qtbase-native = "-j 4"
+    PARALLEL_MAKE:pn-nativesdk-qtbase = "-j 4"

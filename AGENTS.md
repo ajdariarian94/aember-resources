@@ -336,6 +336,18 @@ repos together. Naming lives in `config/release.py`.
   arm32; the SDK's dev-pkgs add the link-time `.so` and `*_preinit.o`) for
   aember's `aember test --sanitize`. Use it with
   `source yocto/build/<arch>/sdk/environment-setup-<tune>-poky-linux`.
+- **Qt 6 in every SDK (v0.1.13)**: `kas/recipes/sdk.yml` adds meta-qt6
+  (`6.10`, Qt 6.10.3) and meta-openembedded (meta-oe, meta-python), pinned
+  near poky's commit, **only to the SDK chain** (kernel/BusyBox/LXC keys stay).
+  qtbase is minimal: `PACKAGECONFIG:pn-qtbase = "gui linuxfb no-opengl png
+  zlib"` (Core, Gui, Network; linuxfb/offscreen/minimal/vnc platforms; no
+  OpenGL, widgets, ICU, DBus, fontconfig, input). The target sysroot gets
+  `qtbase qtbase-dev qtbase-plugins`, the host part `nativesdk-qtbase-tools
+  nativesdk-qtbase-dev` (moc, rcc; meta-qt6 hooks into OEToolchainConfig).
+  `QT_PTEST_ENABLED = "0"`: poky's ptest would build Qt's whole autotest
+  suite (hours per arch). Qt's make jobs are capped at 4 (its cc1plus take
+  ~1 GB). Check new Qt features with `bitbake -g` for clang/mesa first.
+  Used by aember-monitor.
 - **No gcc-reflection** and no other custom GCC builds. That's a deliberate
   decision, so don't reintroduce it.
 
