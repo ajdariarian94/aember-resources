@@ -10,7 +10,7 @@ embedded-Linux system:
 | LXC       | `meta-aember/recipes/virtualization/aember-lxc.bb` | LXC 6.0.2 tools, `liblxc.so`, headers, relocatable `lxc.pc`   |
 | SDK       | `core-image-minimal -c populate_sdk`               | Poky cross toolchain (GCC 15, C++23) and target sysroot       |
 
-for four architectures:
+for four architectures, plus an opt-in musl variant of x64:
 
 | Architecture         | Machine         | Tune             | Runs on |
 |----------------------|-----------------|------------------|---------|
@@ -18,6 +18,7 @@ for four architectures:
 | `aarch64-poky-linux` | `arm64-linux`   | `cortexa53`      | every 64-bit Arm board: Raspberry Pi 3/4/Zero 2 W, i.MX8, Rockchip, QEMU `virt` |
 | `arm-poky-linux`     | `arm-linux`     | `armv7athf-neon` | ARMv7-A boards (Cortex-A7/A9/A15), QEMU `virt` |
 | `riscv64-poky-linux` | `riscv64-linux` | `riscv64` (RV64GC) | QEMU `virt`, StarFive VisionFive 2, Milk-V |
+| `x64-poky-linux-musl` | `x64-linux` + musl | `core2-64` | as x64; musl C library (smaller images, no sanitizers) |
 
 The SDKs also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
 libtsan where GCC has them), for aember's sanitizer test builds.

@@ -110,3 +110,44 @@ class MachineFilesTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class LibcVariantTest(unittest.TestCase):
+    def test_glibc_chain_has_no_libc_file(self):
+        chain = components.kas_chain(components.COMPONENTS["sdk"], "x64-poky-linux")
+        self.assertEqual(
+            chain, ["kas/base.yml", "kas/machine/x64-linux.yml", "kas/recipes/sdk.yml"]
+        )
+        self.assertEqual(components.tmp_dir("x64-poky-linux"), "tmp")
+
+    def test_musl_chain_adds_the_libc_file_before_the_recipe(self):
+        chain = components.kas_chain(
+            components.COMPONENTS["lxc"], "x64-poky-linux-musl"
+        )
+        self.assertEqual(
+            chain,
+            [
+                "kas/base.yml",
+                "kas/machine/x64-linux.yml",
+                "kas/libc/musl.yml",
+                "kas/recipes/lxc.yml",
+            ],
+        )
+        self.assertEqual(components.tmp_dir("x64-poky-linux-musl"), "tmp-musl")
+
+    def test_musl_has_its_own_tmpdir_and_no_sanitizers(self):
+        text = (ROOT / "kas/libc/musl.yml").read_text()
+        self.assertIn('TCLIBC = "musl"', text)
+        self.assertIn('TMPDIR = "${TOPDIR}/tmp-musl"', text)
+        self.assertIn('TOOLCHAIN_TARGET_TASK:remove = "gcc-sanitizers"', text)
+
+    def test_every_libc_variant_has_a_kas_file(self):
+        for arch, libc in components.LIBC_MAP.items():
+            with self.subTest(arch=arch):
+                self.assertTrue(arch.endswith(f"-{libc}"))
+                self.assertTrue((ROOT / components.KAS_LIBC_FILES[libc]).is_file())
+                self.assertIn(f"poky-linux-{libc}", sdk.SDK_SYSROOT_MAP[arch])
+
+    def test_unknown_architecture_has_no_libc(self):
+        with self.assertRaises(ValueError):
+            components.get_libc("mips-poky-linux")

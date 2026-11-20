@@ -7,8 +7,10 @@ from aember.config.components import (
     KERNEL_IMAGE_MAP,
     LOCAL_LAYERS,
     Component,
+    get_libc,
     get_machine,
     kas_chain,
+    tmp_dir,
 )
 from aember.config.release import SDK_INSTALLER, asset_name, is_installer
 from aember.config.sdk import SDK_SYSROOT_MAP
@@ -132,7 +134,7 @@ class KasBuild(Step):
         src = (
             ctx.root
             / BUILD_DIR
-            / "tmp"
+            / tmp_dir(ctx.architecture)
             / "deploy"
             / "images"
             / machine
@@ -148,8 +150,10 @@ class KasBuild(Step):
 
     def _install_sdk(self, ctx: Context) -> None:
         machine = get_machine(ctx.architecture)
-        deploy = ctx.root / BUILD_DIR / "tmp" / "deploy" / "sdk"
-        installers = sorted(deploy.glob(f"*-{machine}-toolchain-*.sh"))
+        deploy = ctx.root / BUILD_DIR / tmp_dir(ctx.architecture) / "deploy" / "sdk"
+        # SDK_NAME is poky-<libc>-<sdkarch>-<image>-<tune>-<machine>
+        libc = get_libc(ctx.architecture)
+        installers = sorted(deploy.glob(f"poky-{libc}-*-{machine}-toolchain-*.sh"))
         if not installers:
             raise RuntimeError(
                 f"No SDK installer for machine '{machine}' in {deploy}. "

@@ -1,0 +1,24 @@
+# C library: musl (opt-in variant, `<arch>-musl`; glibc is the default and
+# has no libc file in the chain). Same GCC 15, other libc: smaller images
+# for aember's -musl targets.
+header:
+  version: 23
+
+local_conf_header:
+  aember-libc-musl: |
+    TCLIBC = "musl"
+    # Its own TMPDIR: glibc and musl builds of the same MACHINE would share
+    # tmp/deploy/images/<machine>/ and the SDK deploy dir otherwise.
+    TMPDIR = "${TOPDIR}/tmp-musl"
+    # GCC's sanitizers (libasan, libtsan, ...) don't support musl.
+    TOOLCHAIN_TARGET_TASK:remove = "gcc-sanitizers"
+  aember-libc-musl-memory: |
+    # A musl build rebuilds the cross GCC and every target package (no
+    # glibc sstate applies). Cap it like riscv64: GCC's parallel ~3 GB links
+    # of cc1/cc1plus/lto1 crashed the 16 GB WSL (2026-11-20).
+    BB_NUMBER_THREADS = "8"
+    PARALLEL_MAKE = "-j 8"
+    PARALLEL_MAKE:pn-gcc = "-j 2"
+    PARALLEL_MAKE:pn-gcc-cross-${TARGET_ARCH} = "-j 2"
+    PARALLEL_MAKE:pn-gcc-cross-canadian-${TARGET_ARCH} = "-j 2"
+    PARALLEL_MAKE:pn-nativesdk-gcc = "-j 2"
