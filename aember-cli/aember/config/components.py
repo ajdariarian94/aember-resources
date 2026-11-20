@@ -21,6 +21,7 @@ MACHINE_MAP: dict[str, str] = {
     "riscv64-poky-linux": "riscv64-linux",
     "x64-poky-linux-musl": "x64-linux",
     "aarch64-poky-linux-musl": "arm64-linux",
+    "arm-poky-linux-musl": "arm-linux",
 }
 
 # Build system architecture → C library. glibc unless listed: musl variants
@@ -29,6 +30,7 @@ MACHINE_MAP: dict[str, str] = {
 LIBC_MAP: dict[str, str] = {
     "x64-poky-linux-musl": "musl",
     "aarch64-poky-linux-musl": "musl",
+    "arm-poky-linux-musl": "musl",
 }
 
 KAS_LIBC_FILES: dict[str, str] = {
@@ -42,6 +44,7 @@ KERNEL_IMAGE_MAP: dict[str, str] = {
     "riscv64-poky-linux": "Image",
     "x64-poky-linux-musl": "bzImage",
     "aarch64-poky-linux-musl": "Image",
+    "arm-poky-linux-musl": "zImage",
 }
 
 
