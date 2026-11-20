@@ -38,8 +38,9 @@ an item only when the user says so. aember-side items are in
   assets double for the archs that get it. No sanitizer runtimes there
   (GCC's sanitizers don't support musl). Start with one arch (aarch64 or
   x64), one at a time, with the gcc memory caps.
-- [ ] Smaller liblxc for aember (meson options: no seccomp/apparmor/selinux,
-  no lxc-* tools), see aember's TODO.md "Image size".
+- [ ] LXC asset: ship a separate stripped liblxc (or split debug info) so
+  every consumer gets the small one; aember strips it in Release images
+  (4.8 MB -> 1.1 MB). The lxc-* tools could go too (not used by aember).
 
 ## Kernel
 

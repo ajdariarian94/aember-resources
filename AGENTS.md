@@ -296,7 +296,7 @@ repos together. Naming lives in `config/release.py`.
   the dev container with `-d yocto/build/<arch>/sdk -y`, so the SDK's
   relocated paths are dev-container paths. The target sysroots are
   `core2-64-poky-linux`, `cortexa53-poky-linux`,
-  `armv7at2hf-neon-poky-linux-gnueabi` and `riscv64-poky-linux`
+  `armv7at2hf-neon-poky-linux-gnueabi` and `riscv64imafdc-poky-linux` (tune `riscv64`)
   (`config/sdk.py`).
 - The SDK's QEMU is built headless (`PACKAGECONFIG:remove:pn-nativesdk-qemu`
   in `kas/recipes/sdk.yml`). With poky's `opengl` it pulls SDL, virglrenderer
