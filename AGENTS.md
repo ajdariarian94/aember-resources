@@ -105,6 +105,7 @@ Recipe rules:
 | `arm-poky-linux`              | `arm-linux`         | `armv7athf-neon` | `zImage` | `yocto/build/arm-poky-linux/` |
 | `riscv64-poky-linux`          | `riscv64-linux`     | `riscv64`   | `Image`      | `yocto/build/riscv64-poky-linux/` |
 | `x64-poky-linux-musl`         | `x64-linux` + musl  | `core2-64`  | `bzImage`    | `yocto/build/x64-poky-linux-musl/` |
+| `aarch64-poky-linux-musl`     | `arm64-linux` + musl | `cortexa53` | `Image`     | `yocto/build/aarch64-poky-linux-musl/` |
 
 aarch64 is generic ARMv8.0-A (`cortexa53` tune since v0.1.8; it was
 `cortexa72`, the Pi 4 only): one build for every 64-bit Arm board, the Pi 4
@@ -129,7 +130,7 @@ their chain: `TCLIBC = "musl"`, their own `TMPDIR` (`yocto/bitbake/tmp-musl`,
 `tmp_dir()`), no `gcc-sanitizers` (GCC's sanitizers don't support musl), and
 GCC's make jobs capped at 2 like riscv64. Nothing from the glibc builds is
 reused (cross GCC, every target package), so a musl architecture is a full
-build. glibc stays the default; only x64 has a musl variant so far. The SDK
+build. glibc stays the default. Variants: x64 (v0.1.9), aarch64 (v0.1.10). The SDK
 installer is picked by `poky-<libc>-*-<machine>-toolchain-*.sh`.
 
 arm32 is generic ARMv7-A, hard-float, NEON (Thumb-2 packages:
