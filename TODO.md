@@ -31,8 +31,8 @@ an item only when the user says so. aember-side items are in
 
 - [x] **Sanitizer runtimes** (`gcc-sanitizers`) in every SDK (v0.1.8), for
   aember's `aember test --sanitize asan|tsan`.
-- [ ] **musl variants (opt-in, glibc stays the default):** x64 done
-  (`x64-poky-linux-musl`, v0.1.9); the others when needed. `TCLIBC = "musl"`
+- [ ] **musl variants (opt-in, glibc stays the default):** done for all
+  four (x64 v0.1.9, aarch64 v0.1.10, arm32 v0.1.11, riscv64 v0.1.12). `TCLIBC = "musl"`
   builds of the SDK and LXC as extra architectures (`<arch>-poky-linux-musl`),
   for aember's `-musl` targets (smaller images). Same GCC 15, other libc:
   one more SDK, LXC and CAS key per architecture, so builds and release
