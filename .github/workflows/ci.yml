@@ -1,0 +1,33 @@
+# aember-resources CI: the CLI's tests and lint. The Yocto builds themselves
+# take hours and tens of GB, far beyond a hosted runner; they run on a
+# developer machine (`aember build`), CI checks that the configuration is
+# complete and consistent (tests/test_architectures.py).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cli:
+    name: CLI tests and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Tests
+        run: cd aember-cli && python -m unittest discover -s tests -v
+      - name: black
+        run: black --check aember-cli
+      - name: ruff
+        run: ruff check aember-cli

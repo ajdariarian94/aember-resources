@@ -1,0 +1,24 @@
+# Target machine: riscv64-linux (64-bit RISC-V, RV64GC)
+header:
+  version: 23
+
+machine: riscv64-linux
+
+local_conf_header:
+  aember-riscv64-parallelism: |
+    # WSL crashes when a build uses every core. Cap make jobs and concurrent
+    # bitbake tasks; the kas container is also CPU-capped
+    # (aember/utils/kas_container.py). PARALLEL_MAKE and BB_NUMBER_THREADS
+    # are not part of task signatures, so sstate is still reused.
+    BB_NUMBER_THREADS = "8"
+    PARALLEL_MAKE = "-j 8"
+  aember-riscv64-gcc-memory: |
+    # GCC's own build links cc1, cc1plus, lto1, ... in parallel, each ld
+    # taking ~3 GB. Four at once ran the 16 GB WSL out of memory and crashed
+    # it (2026-11-20). Two make jobs for the GCC recipes keep the peak near
+    # 6 GB. Only here for now: a change to base.yml changes the CAS key of
+    # every architecture (move it there with the next full rebuild).
+    PARALLEL_MAKE:pn-gcc = "-j 2"
+    PARALLEL_MAKE:pn-gcc-cross-riscv64 = "-j 2"
+    PARALLEL_MAKE:pn-gcc-cross-canadian-riscv64 = "-j 2"
+    PARALLEL_MAKE:pn-nativesdk-gcc = "-j 2"

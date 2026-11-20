@@ -17,6 +17,29 @@ an item only when the user says so. aember-side items are in
   below are missing).
 - [ ] arm32 on real boards needs their device trees (`KERNEL_DEVICETREE`) and
   a bootloader story; only QEMU `virt` is tested.
+- [x] **riscv64 (RV64GC, `riscv64-poky-linux`, v0.1.8):** kernel, BusyBox,
+  LXC and SDK; QEMU `virt`. Real boards (VisionFive 2, Milk-V) need their
+  device trees and a boot flow (U-Boot/OpenSBI images).
+- [x] **Generic aarch64 (v0.1.8):** the `cortexa53` tune instead of
+  `cortexa72`, so one aarch64 build runs on every 64-bit Arm board.
+- [ ] Raspberry Pi 5 (BCM2712; RP1 support in the mainline kernel).
+- [ ] Pi HDMI console (vc4 DRM) in the arm64 kernel.
+- [ ] A debug kernel variant (KASAN, lockdep, kmemleak) for aember's QEMU
+  system tests.
+
+## SDK
+
+- [x] **Sanitizer runtimes** (`gcc-sanitizers`) in every SDK (v0.1.8), for
+  aember's `aember test --sanitize asan|tsan`.
+- [ ] **musl variants (opt-in, glibc stays the default):** `TCLIBC = "musl"`
+  builds of the SDK and LXC as extra architectures (`<arch>-poky-linux-musl`),
+  for aember's `-musl` targets (smaller images). Same GCC 15, other libc:
+  one more SDK, LXC and CAS key per architecture, so builds and release
+  assets double for the archs that get it. No sanitizer runtimes there
+  (GCC's sanitizers don't support musl). Start with one arch (aarch64 or
+  x64), one at a time, with the gcc memory caps.
+- [ ] Smaller liblxc for aember (meson options: no seccomp/apparmor/selinux,
+  no lxc-* tools), see aember's TODO.md "Image size".
 
 ## Kernel
 
