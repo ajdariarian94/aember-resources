@@ -23,7 +23,9 @@ for four architectures, plus opt-in musl variants:
 | `arm-poky-linux-musl` | `arm-linux` + musl | `armv7athf-neon` | as arm32, with musl (musleabi hard-float) |
 | `riscv64-poky-linux-musl` | `riscv64-linux` + musl | `riscv64` | as riscv64, with musl |
 
-The SDKs also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
+The SDKs also carry a minimal Qt 6 (qtbase 6.10.3: Core, Gui, Network,
+linuxfb; no OpenGL or widgets), for small framebuffer UIs such as
+aember-monitor. They also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
 libtsan where GCC has them), for aember's sanitizer test builds.
 
 Builds are described with [kas](https://kas.readthedocs.io/) and run inside a
