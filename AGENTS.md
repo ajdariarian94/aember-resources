@@ -104,6 +104,7 @@ Recipe rules:
 | `aarch64-poky-linux`          | `arm64-linux`       | `cortexa53` | `Image`      | `yocto/build/aarch64-poky-linux/` |
 | `arm-poky-linux`              | `arm-linux`         | `armv7athf-neon` | `zImage` | `yocto/build/arm-poky-linux/` |
 | `riscv64-poky-linux`          | `riscv64-linux`     | `riscv64`   | `Image`      | `yocto/build/riscv64-poky-linux/` |
+| `x64-poky-linux-musl`         | `x64-linux` + musl  | `core2-64`  | `bzImage`    | `yocto/build/x64-poky-linux-musl/` |
 
 aarch64 is generic ARMv8.0-A (`cortexa53` tune since v0.1.8; it was
 `cortexa72`, the Pi 4 only): one build for every 64-bit Arm board, the Pi 4
@@ -121,6 +122,15 @@ defconfig has no module signing. Validate a fragment before a build:
 trims and fragments, `olddefconfig`, then check each option survived (the
 recipe's `aember_merge_fragments` fails the build otherwise, but only after
 the cross compiler is built).
+
+**musl variants (v0.1.9, opt-in):** `<arch>-musl` keys (`LIBC_MAP` in
+`config/components.py`) use the same MACHINE plus `kas/libc/musl.yml` in
+their chain: `TCLIBC = "musl"`, their own `TMPDIR` (`yocto/bitbake/tmp-musl`,
+`tmp_dir()`), no `gcc-sanitizers` (GCC's sanitizers don't support musl), and
+GCC's make jobs capped at 2 like riscv64. Nothing from the glibc builds is
+reused (cross GCC, every target package), so a musl architecture is a full
+build. glibc stays the default; only x64 has a musl variant so far. The SDK
+installer is picked by `poky-<libc>-*-<machine>-toolchain-*.sh`.
 
 arm32 is generic ARMv7-A, hard-float, NEON (Thumb-2 packages:
 `armv7at2hf-neon`, toolchain prefix `arm-poky-linux-gnueabi-`), so one build
@@ -146,6 +156,9 @@ kas/
     x64-linux.yml          # machine: x64-linux
     arm64-linux.yml
     arm-linux.yml
+    riscv64-linux.yml
+  libc/
+    musl.yml               # TCLIBC = musl, own TMPDIR (the <arch>-musl variants)
   recipes/
     kernel.yml             # target: aember-kernel
     busybox.yml            # target: aember-busybox
@@ -153,7 +166,8 @@ kas/
     sdk.yml                # target: core-image-minimal, task: populate_sdk
 ```
 
-A component build is always the chain `base.yml:machine/<m>.yml:recipes/<c>.yml`
+A component build is always the chain `base.yml:machine/<m>.yml:recipes/<c>.yml`,
+with `libc/musl.yml` before the recipe for a musl variant
 (`aember/config/components.py::kas_chain`).
 
 ### The build host is the kas container
