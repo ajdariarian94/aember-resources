@@ -19,6 +19,18 @@ MACHINE_MAP: dict[str, str] = {
     "aarch64-poky-linux": "arm64-linux",
     "arm-poky-linux": "arm-linux",
     "riscv64-poky-linux": "riscv64-linux",
+    "x64-poky-linux-musl": "x64-linux",
+}
+
+# Build system architecture → C library. glibc unless listed: musl variants
+# (`<arch>-musl`) are opt-in extras with the same MACHINE plus
+# kas/libc/musl.yml in their chain.
+LIBC_MAP: dict[str, str] = {
+    "x64-poky-linux-musl": "musl",
+}
+
+KAS_LIBC_FILES: dict[str, str] = {
+    "musl": "kas/libc/musl.yml",
 }
 
 KERNEL_IMAGE_MAP: dict[str, str] = {
@@ -26,6 +38,7 @@ KERNEL_IMAGE_MAP: dict[str, str] = {
     "aarch64-poky-linux": "Image",
     "arm-poky-linux": "zImage",
     "riscv64-poky-linux": "Image",
+    "x64-poky-linux-musl": "bzImage",
 }
 
 
@@ -68,10 +81,24 @@ def get_machine(architecture: str) -> str:
         ) from None
 
 
+def get_libc(architecture: str) -> str:
+    """C library of an architecture: "glibc" or "musl"."""
+    get_machine(architecture)  # unknown architecture -> ValueError
+    return LIBC_MAP.get(architecture, "glibc")
+
+
+def tmp_dir(architecture: str) -> str:
+    """bitbake TMPDIR (relative to the build dir) of an architecture."""
+    libc = get_libc(architecture)
+    return "tmp" if libc == "glibc" else f"tmp-{libc}"
+
+
 def kas_chain(component: Component, architecture: str) -> list[str]:
     """Ordered kas files (repo-relative) that describe one component build."""
+    libc = get_libc(architecture)
     return [
         KAS_BASE,
         f"kas/machine/{get_machine(architecture)}.yml",
+        *([KAS_LIBC_FILES[libc]] if libc in KAS_LIBC_FILES else []),
         component.kas_file,
     ]
