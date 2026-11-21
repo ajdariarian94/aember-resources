@@ -9,6 +9,8 @@
 #     packages.txt    the Yocto packages and versions shipped
 #     symlinks.txt    "<path>\t<target>" per symlink (not in rootfs/; a tab,
 #                     since firmware file names have spaces)
+#     users.txt       /etc/passwd lines of AEMBER_PACKAGE_USERS (and
+#     groups.txt      their /etc/group lines), e.g. D-Bus's messagebus
 #     dirs.txt        "<path>\t<octal mode>" per directory the programs need
 #                     but nothing ships a file in (AEMBER_PACKAGE_DIRS)
 #
@@ -31,6 +33,9 @@ AEMBER_PACKAGE_INSTALL ?= ""
 # Empty directories to create on the device, "<path>:<octal mode>" each
 # (zips can't hold them): e.g. Dropbear's host key directory.
 AEMBER_PACKAGE_DIRS ?= ""
+# System users the programs run as (created by the packages' useradd at
+# image time): their passwd/group lines ship in users.txt/groups.txt.
+AEMBER_PACKAGE_USERS ?= ""
 
 IMAGE_INSTALL = "${AEMBER_PACKAGE_INSTALL}"
 IMAGE_FEATURES = ""
@@ -119,6 +124,19 @@ def aember_pkg_files(d, runtime):
                 return [p.lstrip("/") for p in json.loads(value)]
     return []
 
+def aember_runtime_name(d, pkg):
+    """The name a package is installed under (dbus -> dbus-1: debian-style
+    renaming), from pkgdata's runtime/<pkg> PKG:<pkg> line."""
+    import os
+    path = os.path.join(d.getVar("PKGDATA_DIR"), "runtime", pkg)
+    if os.path.exists(path):
+        with open(path) as f:
+            for line in f:
+                key, _, value = line.partition(": ")
+                if key == "PKG:%s" % pkg and value.strip():
+                    return value.strip()
+    return pkg
+
 def aember_resolve(rootfs, rel):
     """Follow symlinks inside rootfs (absolute targets are rootfs-relative).
     Returns the rootfs-relative path of the final file, or None."""
@@ -147,7 +165,7 @@ python aember_package_tree () {
     os.makedirs(os.path.join(out, "rootfs"))
 
     installed = oe.rootfs.image_list_installed_packages(d)
-    requested = d.getVar("AEMBER_PACKAGE_INSTALL").split()
+    requested = [aember_runtime_name(d, p) for p in d.getVar("AEMBER_PACKAGE_INSTALL").split()]
     keep = set()
     shipped = set(requested)
     for pkg in requested:
@@ -227,6 +245,23 @@ python aember_package_tree () {
         bb.fatal("aember package %s: no files to ship" % d.getVar("AEMBER_PACKAGE"))
     with open(os.path.join(out, "symlinks.txt"), "w") as f:
         f.writelines(l + "\n" for l in links)
+    users = d.getVar("AEMBER_PACKAGE_USERS").split()
+    def entries(name):
+        path = os.path.join(rootfs, "etc", name)
+        if not os.path.exists(path):
+            return {}
+        with open(path) as f:
+            return {l.split(":")[0]: l.rstrip("\n") for l in f if ":" in l}
+    passwd, group = entries("passwd"), entries("group")
+    missing = [u for u in users if u not in passwd]
+    if missing:
+        bb.fatal("AEMBER_PACKAGE_USERS: no such user in the image: %s" % " ".join(missing))
+    gids = {passwd[u].split(":")[3] for u in users}
+    with open(os.path.join(out, "users.txt"), "w") as f:
+        f.writelines(passwd[u] + "\n" for u in users)
+    with open(os.path.join(out, "groups.txt"), "w") as f:
+        f.writelines(l + "\n" for g, l in sorted(group.items())
+                     if g in users or l.split(":")[2] in gids)
     with open(os.path.join(out, "dirs.txt"), "w") as f:
         for entry in d.getVar("AEMBER_PACKAGE_DIRS").split():
             path, _, mode = entry.partition(":")

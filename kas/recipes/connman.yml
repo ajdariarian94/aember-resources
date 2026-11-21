@@ -1,0 +1,26 @@
+# Component: connman (opt-in package: ConnMan + D-Bus)
+header:
+  version: 23
+
+target: aember-pkg-connman
+
+# wpa-supplicant is a ConnMan dependency (built, not shipped: the "wifi"
+# package has it); AEMBER_WIFI keeps it the same small wolfSSL build.
+repos:
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: master
+    commit: df6a14a27c81675f31da3c488d35f07ee413afb5
+    layers:
+      meta-oe:
+      meta-networking:
+      meta-python:
+
+local_conf_header:
+  aember-connman: |
+    # Ethernet + Wi-Fi (wpa_supplicant), connmanctl, nftables as the
+    # firewall backend; no WISPr (gnutls), VPN, Bluetooth or 3G.
+    PACKAGECONFIG:pn-connman = "wifi wpa-supplicant client nftables"
+    AEMBER_WIFI = "1"
+    PACKAGECONFIG:pn-wpa-supplicant = ""
+    EXTRA_OECONF:append:pn-wolfssl = " --enable-wpas"

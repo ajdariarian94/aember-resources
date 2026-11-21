@@ -119,7 +119,8 @@ asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
   in (base-files, bash, update-alternatives) is left out. A `DT_NEEDED` that
   doesn't resolve fails the build.
 - Output (through `IMGDEPLOYDIR`, do_image_complete's sstate): `rootfs/`,
-  `packages.txt` (shipped Yocto packages), `symlinks.txt` (`<path>`, a tab,
+  `packages.txt` (shipped Yocto packages), `users.txt`/`groups.txt`
+  (passwd/group lines of `AEMBER_PACKAGE_USERS`), `symlinks.txt` (`<path>`, a tab,
   `<target>`: firmware names have spaces; links are taken out of `rootfs/` because release zips store
   links as copies) and `dirs.txt` (`<path>`, tab, `<mode>`: empty directories).
   aember recreates links and directories when it packs an image. Hard
@@ -142,7 +143,16 @@ asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
   `.config`s in their `files/`; any other build of those recipes stays as
   upstream has it). `layer.conf` reads `recipes/*/*.bbappend` and, with
   `BBFILES_DYNAMIC`, the hostapd append only when meta-oe is in the build.
-  wolfSSL needs `--enable-wpas`. No enterprise EAP.
+  wolfSSL needs `--enable-wpas`. 802.1X with PEAP/TTLS/TLS/MSCHAPv2 is
+  in: with no EAP method, wpa_supplicant's `EapMethods` D-Bus getter fails,
+  which fails its whole `GetAll` and ConnMan never adds the interface.
+- ConnMan (`connman`): `PACKAGECONFIG:pn-connman = "wifi wpa-supplicant
+  client nftables"`, plus D-Bus (`dbus` installs as runtime package
+  `dbus-1`: the class maps names through pkgdata's `PKG:` lines). Its
+  system user `messagebus` ships in `users.txt`/`groups.txt`
+  (`AEMBER_PACKAGE_USERS`); the session-bus tools are dropped
+  (`dbus-launch` links X11). `base.cfg` has nf_tables as modules
+  (ConnMan's firewall backend). 7.8 MB on x64, about half of it GLib.
 
 ## Architectures
 

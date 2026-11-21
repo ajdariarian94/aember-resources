@@ -31,8 +31,16 @@ BusyBox `ntpd` (already in BusyBox). Order:
   OpenSSL (12 MB and 8.6 MB before). Tested in aember's QEMU x64 with
   `mac80211_hwsim`: WPA3-SAE client joins the AP, DHCP over Wi-Fi, ping.
   Not yet on a real Pi 4.
-- [ ] **ConnMan + D-Bus**: an alternative network service (Wi-Fi, roaming,
-  DNS); needs D-Bus users (`messagebus`) in the package format.
+- [x] **ConnMan + D-Bus** (`connman`, 7.8 MB on x64, mostly GLib): ConnMan
+  (Ethernet, Wi-Fi through the `wifi` package's wpa_supplicant, nftables
+  firewall, no WISPr/VPN/Bluetooth), connmanctl, the D-Bus system bus
+  (`messagebus` user through `users.txt`; no session-bus tools, they link
+  X11). nf_tables modules in every kernel. wpa_supplicant now has 802.1X
+  (PEAP/TTLS/TLS): without any EAP method its D-Bus property query fails
+  and ConnMan never sees the Wi-Fi interface. Tested in aember's QEMU x64:
+  ConnMan instead of netd, Ethernet online, joins the hwsim AP from a
+  provisioning file (needs `AlwaysConnectedTechnologies = ethernet,wifi`
+  while Ethernet is up).
 - [ ] **OTA updates (RAUC)**: needs the external meta-rauc layer, an A/B
   root partition layout in aember's Pi/USB images and bootloader slot
   selection; the biggest item.
