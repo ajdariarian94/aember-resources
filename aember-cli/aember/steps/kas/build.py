@@ -61,6 +61,10 @@ class KasBuild(Step):
             return (out / "busybox").is_file()
         if name == "lxc":
             return any((out / "libs").glob("liblxc.so*"))
+        if self.component.package:
+            return (out / "packages.txt").is_file() and any(
+                p.is_file() for p in (out / "rootfs").rglob("*")
+            )
         if name == "sdk":
             return (
                 out / "sysroots" / SDK_SYSROOT_MAP[ctx.architecture]
