@@ -119,9 +119,9 @@ asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
   in (base-files, bash, update-alternatives) is left out. A `DT_NEEDED` that
   doesn't resolve fails the build.
 - Output (through `IMGDEPLOYDIR`, do_image_complete's sstate): `rootfs/`,
-  `packages.txt` (shipped Yocto packages), `symlinks.txt` (`<path>
-  <target>`; links are taken out of `rootfs/` because release zips store
-  links as copies) and `dirs.txt` (`<path> <mode>`, empty directories).
+  `packages.txt` (shipped Yocto packages), `symlinks.txt` (`<path>`, a tab,
+  `<target>`: firmware names have spaces; links are taken out of `rootfs/` because release zips store
+  links as copies) and `dirs.txt` (`<path>`, tab, `<mode>`: empty directories).
   aember recreates links and directories when it packs an image. Hard
   links (e2fsprogs' `fsck.ext4` = `e2fsck`) ship once; the other names go
   into `symlinks.txt`. aember adds the C library pieces a package's
@@ -131,6 +131,18 @@ asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
   ~0.5 MB (musl).
 - e2fsprogs: `e2fsck`, `mke2fs`, `resize2fs`, `tune2fs`/`e2label` and
   their libraries, 1.7 MB (x64).
+- Wi-Fi: the kernel's 802.11 stack and `mac80211_hwsim` are modules in
+  every kernel (`base.cfg`; `trim.cfg` turns Wi-Fi off, the required
+  fragment wins), `brcmfmac` (+ SDIO) in arm64. `wifi` (wpa_supplicant,
+  wpa_cli, iw, wireless-regdb, on aarch64 `linux-firmware-bcm43455`) and
+  `wifi-ap` (hostapd) build with **wolfSSL** instead of OpenSSL: their kas
+  files add meta-oe, meta-networking, meta-python and set `AEMBER_WIFI =
+  "1"`, which switches on `recipes/packages/wpa-supplicant_%.bbappend` and
+  `dynamic-layers/openembedded-layer/hostapd/hostapd_%.bbappend` (minimal
+  `.config`s in their `files/`; any other build of those recipes stays as
+  upstream has it). `layer.conf` reads `recipes/*/*.bbappend` and, with
+  `BBFILES_DYNAMIC`, the hostapd append only when meta-oe is in the build.
+  wolfSSL needs `--enable-wpas`. No enterprise EAP.
 
 ## Architectures
 

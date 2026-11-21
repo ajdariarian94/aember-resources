@@ -1,0 +1,26 @@
+# Component: wifi-ap (opt-in package: Wi-Fi access point, hostapd)
+header:
+  version: 23
+
+target: aember-pkg-wifi-ap
+
+# hostapd (meta-oe) with wolfSSL (meta-networking) instead of OpenSSL: the
+# minimal config in meta-aember (hostapd_%.bbappend, AEMBER_WIFI).
+repos:
+  meta-openembedded:
+    url: https://git.openembedded.org/meta-openembedded
+    branch: master
+    commit: df6a14a27c81675f31da3c488d35f07ee413afb5
+    layers:
+      meta-oe:
+      meta-networking:
+      meta-python:
+
+local_conf_header:
+  aember-wifi: |
+    # Minimal wpa_supplicant/hostapd builds with wolfSSL: WPA2 + WPA3 in
+    # about 2 MB instead of 12 MB with OpenSSL (meta-aember bbappends).
+    AEMBER_WIFI = "1"
+    PACKAGECONFIG:pn-wpa-supplicant = ""
+    # What hostap needs from wolfSSL (SAE, PMF, ...).
+    EXTRA_OECONF:append:pn-wolfssl = " --enable-wpas"
