@@ -61,6 +61,20 @@ class Component:
     # sub-directory of tmp/deploy/images/<machine>/aember/ the recipe deploys
     # into (None: not a deploy-based component, e.g. the SDK installer)
     deploy_name: str | None
+    # An opt-in package (meta-aember/classes-recipe/aember-package.bbclass):
+    # rootfs/ + packages.txt, which aember copies into a board's image only
+    # when the board lists it.
+    package: bool = False
+
+
+def _package(name: str) -> Component:
+    return Component(
+        name, f"kas/recipes/{name}.yml", f"packages/{name}", name, package=True
+    )
+
+
+# Opt-in packages, each its own component and release asset.
+PACKAGES: list[str] = ["dropbear"]
 
 
 COMPONENTS: dict[str, Component] = {
@@ -68,6 +82,7 @@ COMPONENTS: dict[str, Component] = {
     "busybox": Component("busybox", "kas/recipes/busybox.yml", "busybox", "busybox"),
     "lxc": Component("lxc", "kas/recipes/lxc.yml", "virtualization", "lxc"),
     "sdk": Component("sdk", "kas/recipes/sdk.yml", "sdk", None),
+    **{name: _package(name) for name in PACKAGES},
 }
 
 

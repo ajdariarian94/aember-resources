@@ -7,6 +7,31 @@ an item only when the user says so. aember-side items are in
 **Agreed order (2026-11-15):** 1. aarch64 working end to end, 2. arm32,
 3. then size optimization (kernel trimming etc.).
 
+## Opt-in packages (agreed 2026-11-21)
+
+Prebuilt programs a board can opt in to (aember's
+`etc/aember/packages.json`): each is its own component and release asset
+(`aember-<pkg>-<arch>-v<V>.zip`), built by a small image recipe
+(`meta-aember/classes-recipe/aember-package.bbclass`) that ships only the
+programs and the libraries they need beyond the C library. Containers are
+not built here (aember-build-helper packs Docker images); time sync is
+BusyBox `ntpd` (already in BusyBox). Order:
+
+- [x] **Package infrastructure + Dropbear** (SSH server, ~0.7 MB on glibc,
+  0.5 MB on musl). Tested in aember's QEMU x64: public-key login.
+- [ ] **e2fsprogs**: `e2fsck`, `resize2fs`, `mke2fs` (check or grow a data
+  partition at boot).
+- [ ] **Wi-Fi**: kernel `cfg80211`/`mac80211` + `brcmfmac` (Pi 4) +
+  `mac80211_hwsim` (QEMU tests) as modules, `wpa_supplicant`, the Pi 4's
+  `brcmfmac43455` firmware; hostapd (meta-oe) to test in QEMU with
+  `mac80211_hwsim`.
+- [ ] **ConnMan + D-Bus**: an alternative network service (Wi-Fi, roaming,
+  DNS); needs D-Bus users (`messagebus`) in the package format.
+- [ ] **OTA updates (RAUC)**: needs the external meta-rauc layer, an A/B
+  root partition layout in aember's Pi/USB images and bootloader slot
+  selection; the biggest item.
+- [ ] Release all packages for every architecture (v0.1.14).
+
 ## Architectures
 
 - [x] **aarch64 (Raspberry Pi 4, Cortex-A72):** kernel, BusyBox, LXC and SDK

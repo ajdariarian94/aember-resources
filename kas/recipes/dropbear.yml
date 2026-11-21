@@ -1,0 +1,11 @@
+# Component: dropbear (opt-in package: SSH server)
+header:
+  version: 23
+
+target: aember-pkg-dropbear
+
+local_conf_header:
+  aember-dropbear: |
+    # No PAM and no X11 forwarding (aember has neither), bundled libtom:
+    # Dropbear then needs only zlib and libcrypt beyond the C library.
+    PACKAGECONFIG:pn-dropbear = ""

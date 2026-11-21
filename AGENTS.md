@@ -15,6 +15,7 @@ again:
 - BusyBox
 - LXC
 - SDK / compilers (Poky SDK toolchain: GCC 15, C++23, no custom GCC)
+- opt-in packages a board can add (Dropbear SSH, ...), see below
 
 kas files say **which layers (external ones pinned by commit), which machine,
 which local.conf settings and which bitbake target** to use. The recipes live
@@ -29,6 +30,7 @@ in `meta-aember/` in this repo, and the only external layer is Poky.
 | Kernel         | `meta-aember/recipes/kernel/aember-kernel.bb` (linux 6.16, `files/{base,x64-linux,arm64-linux,arm-linux,riscv64-linux}.cfg`) |
 | BusyBox        | `meta-aember/recipes/busybox/aember-busybox.bb` (1.36.1, static, `.cfg` fragments) |
 | LXC            | `meta-aember/recipes/virtualization/aember-lxc.bb` (6.0.2, meson, prctl patch, `.conf` files) |
+| Packages       | `meta-aember/recipes/packages/aember-pkg-<name>.bb` + `classes-recipe/aember-package.bbclass` |
 | Poky           | cloned by kas into `yocto/poky` from `https://github.com/ajdariarian94/poky.git`, pinned in `kas/base.yml` |
 
 `kas/base.yml` adds the layer through a repo entry without a `url`, which
@@ -95,6 +97,35 @@ Recipe rules:
 - Pin sources with `SRC_URI[sha256sum]` (or `SRCREV`). No `AUTOREV`.
 - Don't add `${PN}-dev`, `${PN}-dbg` and the like to `PACKAGES` yourself, because
   they're already defaults, and a duplicate fails the `packages-list` QA check.
+
+### Opt-in packages
+
+Programs a board opts in to (aember's `etc/aember/packages.json`; aember
+downloads and packs only the listed ones). Each is its **own component**
+(`PACKAGES` in `config/components.py`, output `yocto/build/<arch>/packages/<name>/`,
+asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
+
+- A package recipe is a tiny image: `AEMBER_PACKAGE = "<name>"`,
+  `AEMBER_PACKAGE_INSTALL = "<yocto packages>"`, optionally
+  `AEMBER_PACKAGE_DIRS = "<path>:<mode> ..."`, then `inherit aember-package`.
+  Per-package `PACKAGECONFIG` goes into its `kas/recipes/<name>.yml`
+  (`local_conf_header`), not into meta-aember, so other keys stay.
+- The class (`aember_package_tree`, a rootfs post-process) ships the
+  files of the requested packages (pkgdata's `runtime-reverse` file lists,
+  without init scripts and docs) and the shared libraries their ELF files
+  need (`DT_NEEDED`, recursively, parsed in Python), **except the C
+  library** (`AEMBER_PACKAGE_LIBC`: glibc and musl sonames, `libgcc_s`,
+  `libstdc++`), which aember's image has. Everything else the image pulled
+  in (base-files, bash, update-alternatives) is left out. A `DT_NEEDED` that
+  doesn't resolve fails the build.
+- Output (through `IMGDEPLOYDIR`, do_image_complete's sstate): `rootfs/`,
+  `packages.txt` (shipped Yocto packages), `symlinks.txt` (`<path>
+  <target>`; links are taken out of `rootfs/` because release zips store
+  links as copies) and `dirs.txt` (`<path> <mode>`, empty directories).
+  aember recreates links and directories when it packs an image.
+- Dropbear: `PACKAGECONFIG:pn-dropbear = ""` (no PAM/X11, bundled libtom),
+  host key dir `/etc/dropbear` (0700); ~0.7 MB (glibc: + libz, libcrypt),
+  ~0.5 MB (musl).
 
 ## Architectures
 
@@ -167,6 +198,7 @@ kas/
     busybox.yml            # target: aember-busybox
     lxc.yml                # target: aember-lxc
     sdk.yml                # target: core-image-minimal, task: populate_sdk
+    <package>.yml          # target: aember-pkg-<package> (opt-in packages)
 ```
 
 A component build is always the chain `base.yml:machine/<m>.yml:recipes/<c>.yml`,
@@ -272,7 +304,7 @@ repos together. Naming lives in `config/release.py`.
 
 | Asset                                      | Content                                                    |
 |--------------------------------------------|------------------------------------------------------------|
-| `aember-<component>-<arch>-v<VERSION>.zip` | kernel, busybox, lxc: the whole output dir, incl. `.kas-hash` |
+| `aember-<component>-<arch>-v<VERSION>.zip` | kernel, busybox, lxc, packages: the whole output dir, incl. `.kas-hash` |
 | `aember-sdk-<arch>-v<VERSION>.sh`          | the SDK installer; run it with `-d <dir> -y`               |
 | `manifest.json`                            | version, tag, and per asset: component, arch, format, kas hash, sha256, size |
 | `SHA256SUMS`                               | `sha256sum -c` list of all assets                          |
@@ -365,7 +397,7 @@ aember-cli/             Python CLI (`aember`), installed editable in /venv
   tests/                unittest: test_architectures.py (every arch complete everywhere)
   aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, archive (zip), github, root, runner
 kas/                    kas YAML files (see above)
-meta-aember/            Yocto layer: machines + kernel/busybox/lxc recipes
+meta-aember/            Yocto layer: machines, kernel/busybox/lxc recipes, packages/ + classes-recipe/
 hashes/<arch>/          Committed CAS keys of released artifacts
 VERSION                 Release version (x.y.z)
 .github/workflows/      ci.yml: CLI tests + lint on push and pull requests

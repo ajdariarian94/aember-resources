@@ -70,12 +70,25 @@ class MachineFilesTest(unittest.TestCase):
             "kernel/aember-kernel.bb",
             "busybox/aember-busybox.bb",
             "virtualization/aember-lxc.bb",
+            "../classes-recipe/aember-package.bbclass",
         ):
             text = (RECIPES / recipe).read_text()
             allowed = re.search(r'COMPATIBLE_MACHINE = "([^"]+)"', text).group(1)
             for machine in machines():
                 with self.subTest(recipe=recipe, machine=machine):
                     self.assertIn(machine, allowed.split("|"))
+
+    def test_packages_are_wired(self):
+        for name in components.PACKAGES:
+            with self.subTest(package=name):
+                c = components.COMPONENTS[name]
+                self.assertTrue(c.package)
+                self.assertEqual(c.output_dir, f"packages/{name}")
+                kas = (ROOT / c.kas_file).read_text()
+                self.assertIn(f"target: aember-pkg-{name}", kas)
+                recipe = (RECIPES / f"packages/aember-pkg-{name}.bb").read_text()
+                self.assertIn(f'AEMBER_PACKAGE = "{name}"', recipe)
+                self.assertIn("inherit aember-package", recipe)
 
     def test_kernel_fragments_exist_and_are_wired(self):
         kernel = (RECIPES / "kernel/aember-kernel.bb").read_text()
