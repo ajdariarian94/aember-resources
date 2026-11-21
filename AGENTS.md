@@ -122,10 +122,15 @@ asset `aember-<name>-<arch>-v<V>.zip`), so a package has its own CAS key.
   `packages.txt` (shipped Yocto packages), `symlinks.txt` (`<path>
   <target>`; links are taken out of `rootfs/` because release zips store
   links as copies) and `dirs.txt` (`<path> <mode>`, empty directories).
-  aember recreates links and directories when it packs an image.
+  aember recreates links and directories when it packs an image. Hard
+  links (e2fsprogs' `fsck.ext4` = `e2fsck`) ship once; the other names go
+  into `symlinks.txt`. aember adds the C library pieces a package's
+  programs need (glibc's `libpthread.so.0` for e2fsprogs) from the SDK.
 - Dropbear: `PACKAGECONFIG:pn-dropbear = ""` (no PAM/X11, bundled libtom),
   host key dir `/etc/dropbear` (0700); ~0.7 MB (glibc: + libz, libcrypt),
   ~0.5 MB (musl).
+- e2fsprogs: `e2fsck`, `mke2fs`, `resize2fs`, `tune2fs`/`e2label` and
+  their libraries, 1.7 MB (x64).
 
 ## Architectures
 

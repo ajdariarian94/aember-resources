@@ -74,7 +74,7 @@ def _package(name: str) -> Component:
 
 
 # Opt-in packages, each its own component and release asset.
-PACKAGES: list[str] = ["dropbear"]
+PACKAGES: list[str] = ["dropbear", "e2fsprogs"]
 
 
 COMPONENTS: dict[str, Component] = {

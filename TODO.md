@@ -19,8 +19,9 @@ BusyBox `ntpd` (already in BusyBox). Order:
 
 - [x] **Package infrastructure + Dropbear** (SSH server, ~0.7 MB on glibc,
   0.5 MB on musl). Tested in aember's QEMU x64: public-key login.
-- [ ] **e2fsprogs**: `e2fsck`, `resize2fs`, `mke2fs` (check or grow a data
-  partition at boot).
+- [x] **e2fsprogs**: `e2fsck`, `mke2fs`, `resize2fs`, `tune2fs`/`e2label`
+  (1.7 MB on x64 with libext2fs, libblkid, libuuid). Tested in aember's
+  QEMU x64: ext4 with journal made, checked, grown, labelled.
 - [ ] **Wi-Fi**: kernel `cfg80211`/`mac80211` + `brcmfmac` (Pi 4) +
   `mac80211_hwsim` (QEMU tests) as modules, `wpa_supplicant`, the Pi 4's
   `brcmfmac43455` firmware; hostapd (meta-oe) to test in QEMU with
