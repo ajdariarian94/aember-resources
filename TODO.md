@@ -22,10 +22,15 @@ BusyBox `ntpd` (already in BusyBox). Order:
 - [x] **e2fsprogs**: `e2fsck`, `mke2fs`, `resize2fs`, `tune2fs`/`e2label`
   (1.7 MB on x64 with libext2fs, libblkid, libuuid). Tested in aember's
   QEMU x64: ext4 with journal made, checked, grown, labelled.
-- [ ] **Wi-Fi**: kernel `cfg80211`/`mac80211` + `brcmfmac` (Pi 4) +
-  `mac80211_hwsim` (QEMU tests) as modules, `wpa_supplicant`, the Pi 4's
-  `brcmfmac43455` firmware; hostapd (meta-oe) to test in QEMU with
-  `mac80211_hwsim`.
+- [x] **Wi-Fi**: every kernel has `cfg80211`, `mac80211` and
+  `mac80211_hwsim` as modules (arm64 also `brcmfmac` + SDIO for the Pi 4).
+  `wifi`: wpa_supplicant (WPA2 + WPA3-SAE, D-Bus, no P2P/WPS/EAP), wpa_cli,
+  wpa_passphrase, iw, the signed regulatory database, on aarch64 the Pi 4's
+  BCM43455 firmware: 3.5 MB (x64), 4.5 MB (aarch64). `wifi-ap`: hostapd
+  (WPA2/WPA3), 2.6 MB. Both use wolfSSL (meta-networking) instead of
+  OpenSSL (12 MB and 8.6 MB before). Tested in aember's QEMU x64 with
+  `mac80211_hwsim`: WPA3-SAE client joins the AP, DHCP over Wi-Fi, ping.
+  Not yet on a real Pi 4.
 - [ ] **ConnMan + D-Bus**: an alternative network service (Wi-Fi, roaming,
   DNS); needs D-Bus users (`messagebus`) in the package format.
 - [ ] **OTA updates (RAUC)**: needs the external meta-rauc layer, an A/B

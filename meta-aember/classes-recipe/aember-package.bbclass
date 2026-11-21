@@ -7,8 +7,9 @@
 #   ${DEPLOY_DIR_IMAGE}/aember/<AEMBER_PACKAGE>/
 #     rootfs/         files as they go into the device's root filesystem
 #     packages.txt    the Yocto packages and versions shipped
-#     symlinks.txt    "<path> <target>" per symlink (not in rootfs/)
-#     dirs.txt        "<path> <octal mode>" per directory the programs need
+#     symlinks.txt    "<path>\t<target>" per symlink (not in rootfs/; a tab,
+#                     since firmware file names have spaces)
+#     dirs.txt        "<path>\t<octal mode>" per directory the programs need
 #                     but nothing ships a file in (AEMBER_PACKAGE_DIRS)
 #
 # through IMGDEPLOYDIR, which is do_image_complete's sstate output, so the
@@ -49,10 +50,11 @@ COMPATIBLE_MACHINE = "x64-linux|arm64-linux|arm-linux|riscv64-linux"
 
 AEMBER_PACKAGE_TREE = "${WORKDIR}/aember-package"
 
-# Package files never shipped (path prefixes, relative to the rootfs).
-AEMBER_PACKAGE_DROP = " \
+# Package files never shipped (path prefixes, relative to the rootfs); a
+# recipe can append its own.
+AEMBER_PACKAGE_DROP ?= " \
     etc/init.d/ etc/rc0.d/ etc/rc1.d/ etc/rc2.d/ etc/rc3.d/ etc/rc4.d/ \
-    etc/rc5.d/ etc/rc6.d/ etc/rcS.d/ etc/default/ \
+    etc/rc5.d/ etc/rc6.d/ etc/rcS.d/ etc/default/ etc/network/ \
     usr/share/doc/ usr/share/man/ usr/share/info/ usr/share/locale/ \
     usr/lib/systemd/ lib/systemd/ \
 "
@@ -206,7 +208,7 @@ python aember_package_tree () {
     for rel in sorted(keep):
         src = os.path.join(rootfs, rel)
         if os.path.islink(src):
-            links.append("/%s %s" % (rel, os.readlink(src)))
+            links.append("/%s\t%s" % (rel, os.readlink(src)))
             continue
         if not os.path.isfile(src):
             continue
@@ -215,7 +217,7 @@ python aember_package_tree () {
         st = os.stat(src)
         first = inodes.setdefault((st.st_dev, st.st_ino), rel)
         if first != rel:
-            links.append("/%s /%s" % (rel, first))
+            links.append("/%s\t/%s" % (rel, first))
         else:
             dst = os.path.join(out, "rootfs", rel)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -231,7 +233,7 @@ python aember_package_tree () {
             if not path.startswith("/") or not mode:
                 bb.fatal("AEMBER_PACKAGE_DIRS: want <path>:<mode>, got %s" % entry)
             int(mode, 8)
-            f.write("%s %s\n" % (path, mode))
+            f.write("%s\t%s\n" % (path, mode))
     with open(os.path.join(out, "packages.txt"), "w") as f:
         for pkg in sorted(shipped):
             info = installed.get(pkg, {})
