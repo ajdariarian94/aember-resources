@@ -202,11 +202,21 @@ python aember_package_tree () {
                 keep.add(rel)
 
     links = []
+    inodes = {}
     for rel in sorted(keep):
         src = os.path.join(rootfs, rel)
         if os.path.islink(src):
             links.append("/%s %s" % (rel, os.readlink(src)))
-        elif os.path.isfile(src):
+            continue
+        if not os.path.isfile(src):
+            continue
+        # Hard links (e2fsprogs' fsck.ext4 = e2fsck) ship once; the other
+        # names become symlinks to the first.
+        st = os.stat(src)
+        first = inodes.setdefault((st.st_dev, st.st_ino), rel)
+        if first != rel:
+            links.append("/%s /%s" % (rel, first))
+        else:
             dst = os.path.join(out, "rootfs", rel)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copyfile(src, dst)

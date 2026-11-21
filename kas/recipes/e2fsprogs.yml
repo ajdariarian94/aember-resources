@@ -1,0 +1,5 @@
+# Component: e2fsprogs (opt-in package: ext4 tools)
+header:
+  version: 23
+
+target: aember-pkg-e2fsprogs
