@@ -18,6 +18,7 @@ repos:
     layers:
       meta-oe:
       meta-python:
+      meta-networking:
   meta-qt6:
     url: https://code.qt.io/yocto/meta-qt6.git
     branch: "6.10"
@@ -28,6 +29,15 @@ local_conf_header:
     # Ship liblxc, its headers and lxc.pc in the SDK target sysroot so C++
     # code can build against LXC (aember-lxc-dev pulls in aember-lxc).
     TOOLCHAIN_TARGET_TASK:append = " aember-lxc-dev"
+  aember-sdk-wolfssl: |
+    # wolfSSL (meta-networking) for small TLS clients and signatures:
+    # aember-auth (TLS to the fleet server, Ed25519 device key) and the
+    # aember-fleet agent (Ed25519 + SHA-256 checks). ~1.5 MB instead of
+    # OpenSSL's ~7 MB in each container.
+    TOOLCHAIN_TARGET_TASK:append = " wolfssl-dev"
+    # nlohmann/json (header-only, meta-oe) for the same services' JSON.
+    TOOLCHAIN_TARGET_TASK:append = " nlohmann-json-dev"
+    EXTRA_OECONF:append:pn-wolfssl = " --enable-ed25519 --enable-curve25519 --enable-sni"
   aember-sdk-sanitizers: |
     # GCC's sanitizer runtimes (libasan, libubsan; liblsan and libtsan where
     # GCC supports them: not on arm32) in the target sysroot, so aember's
