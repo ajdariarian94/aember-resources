@@ -426,7 +426,7 @@ aember-cli/             Python CLI (`aember`), installed editable in /venv
   aember/steps/kas/     KasBuild: the CAS-cached component build
   aember/steps/release/ PackComponent, WriteReleaseIndex, PublishRelease
   aember/steps/linting/ LintStep
-  aember/config/        components.py (kas chains), release.py (asset names), arch, SDK, QEMU, libs/modules
+  aember/config/        components.py (kas chains, packages), release.py (asset names), architecture, sdk (sysroots)
   tests/                unittest: test_architectures.py (every arch complete everywhere)
   aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, archive (zip), github, root, runner
 kas/                    kas YAML files (see above)
@@ -506,14 +506,13 @@ python aember-cli/run.py ... # run the CLI without the installed entry point
   a key is missing.
 - Commands find the repo root with `utils/root.find_root()` (it looks for
   `kas/base.yml`), not with `Path.cwd()`.
-- Use the `Architecture` / `BuildType` enums for CLI options.
+- Use the `Architecture` enum for CLI options.
 - Logging: `log = logging.getLogger("aember.<area>")`. Use `%s` args in log
   calls, not f-strings.
 - Fetch helpers return `bool` and log warnings instead of raising, so callers
   can fall back to building from source. Keep that contract.
-- Build paths from `ctx.root` (`pathlib.Path`). `aember/config/libs.py` still
-  has hard-coded `/aember_ws/aember/...` paths from the old setup (unused for
-  now).
+- Build paths from `ctx.root` (`pathlib.Path`), never absolute workspace
+  paths.
 - Steps must be idempotent. Clear temp dirs with
   `shutil.rmtree(..., ignore_errors=True)` before using them.
 

@@ -8,7 +8,7 @@ import re
 import unittest
 from pathlib import Path
 
-from aember.config import components, qemu, sdk
+from aember.config import components, sdk
 from aember.config.architecture import Architecture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,18 +34,7 @@ class ArchitectureMapsTest(unittest.TestCase):
             with self.subTest(arch=arch.value):
                 self.assertIn(arch.value, components.MACHINE_MAP)
                 self.assertIn(arch.value, components.KERNEL_IMAGE_MAP)
-                self.assertIn(arch.value, qemu.QEMU_RUNNER_MAP)
-                self.assertIn(arch.value, sdk.SDK_ENV_MAP)
                 self.assertIn(arch.value, sdk.SDK_SYSROOT_MAP)
-                self.assertIn(arch.value, sdk.VCPKG_TRIPLET_MAP)
-
-    def test_sdk_env_matches_its_sysroot(self):
-        for arch in Architecture:
-            with self.subTest(arch=arch.value):
-                self.assertEqual(
-                    sdk.SDK_ENV_MAP[arch.value],
-                    "environment-setup-" + sdk.SDK_SYSROOT_MAP[arch.value],
-                )
 
     def test_aarch64_is_the_generic_cortex_a53_tune(self):
         conf = (ROOT / "meta-aember/conf/machine/arm64-linux.conf").read_text()
