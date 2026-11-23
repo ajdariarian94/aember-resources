@@ -9,6 +9,7 @@ embedded-Linux system:
 | BusyBox   | `meta-aember/recipes/busybox/aember-busybox.bb`    | static BusyBox 1.36.1                                         |
 | LXC       | `meta-aember/recipes/virtualization/aember-lxc.bb` | LXC 6.0.2 tools, `liblxc.so`, headers, relocatable `lxc.pc`   |
 | SDK       | `core-image-minimal -c populate_sdk`               | Poky cross toolchain (GCC 15, C++23) and target sysroot       |
+| Packages  | `meta-aember/recipes/packages/aember-pkg-<name>.bb` | opt-in programs a board lists in aember's `packages.json`: `dropbear`, `e2fsprogs`, `wifi`, `wifi-ap`, `connman` |
 
 for four architectures, plus opt-in musl variants:
 
@@ -26,7 +27,14 @@ for four architectures, plus opt-in musl variants:
 The SDKs also carry a minimal Qt 6 (qtbase 6.10.3: Core, Gui, Network,
 linuxfb; no OpenGL or widgets), for small framebuffer UIs such as
 aember-monitor. They also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
-libtsan where GCC has them), for aember's sanitizer test builds.
+libtsan where GCC has them), for aember's sanitizer test builds, and
+wolfSSL (Ed25519, Curve25519, SNI) plus nlohmann/json for aember-auth and
+aember-fleet's agent (v0.1.15).
+
+The packages ship only their programs and the libraries they need beyond
+the C library (Dropbear 0.7 MB, e2fsprogs 1.7 MB, Wi-Fi client 3.5 MB,
+access point 2.6 MB, ConnMan with D-Bus 7.8 MB on x64; Wi-Fi uses wolfSSL
+instead of OpenSSL). How a board uses them: aember's `doc/packages.md`.
 
 Builds are described with [kas](https://kas.readthedocs.io/) and run inside a
 digest-pinned kas container, so every machine builds in the same environment.
@@ -59,7 +67,7 @@ yocto/build/x64-poky-linux/
 
 ```bash
 aember --help                                    # all commands
-aember build <component>... [-a <arch>] [-f]     # kernel | busybox | lxc | sdk
+aember build <component>... [-a <arch>] [-f]     # kernel | busybox | lxc | sdk | <package>
 aember kas-shell <component> [-a <arch>] [-c "<cmd>"]   # bitbake shell in the kas container
 aember lint                                      # ruff, black, clang-format, cmake-format
 aember -v ...                                    # verbose logging

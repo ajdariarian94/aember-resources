@@ -41,10 +41,15 @@ BusyBox `ntpd` (already in BusyBox). Order:
   ConnMan instead of netd, Ethernet online, joins the hwsim AP from a
   provisioning file (needs `AlwaysConnectedTechnologies = ethernet,wifi`
   while Ethernet is up).
-- [ ] **OTA updates (RAUC)**: needs the external meta-rauc layer, an A/B
-  root partition layout in aember's Pi/USB images and bootloader slot
-  selection; the biggest item.
-- [ ] Release all packages for every architecture (v0.1.14).
+- [x] Release all packages for every architecture (v0.1.14).
+- [x] **Container updates** (2026-11-22): not a package here but two
+  container repos, aember-auth (device identity) and aember-fleet (server +
+  agent), built with the SDKs; v0.1.15 adds wolfSSL and nlohmann/json to
+  them. Tested in aember's QEMU x64 (update and rollback).
+- [ ] **aember OS updates** (later, user's call): A/B root partitions in
+  aember's Pi/USB images and bootloader slot selection (Pi 4 tryboot,
+  systemd-boot boot counting); RAUC would need meta-rauc and OpenSSL+GLib,
+  SWUpdate can use wolfSSL.
 
 ## Architectures
 
