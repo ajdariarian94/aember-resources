@@ -448,6 +448,13 @@ Don't "fix" this without asking.
 
 ## Environment
 
+- **Dev image**: developers pull `ghcr.io/ajdariarian94/aember-resources-dev` and never
+  build it. `.github/workflows/dev-image.yml` publishes it (tags `latest` +
+  `<YYYYMMDD>-<sha7>`) when `.devcontainer/Dockerfile` or what it COPYs
+  changes on main; PRs touching them build only. A change to the Dockerfile's
+  inputs (e.g. a new Python package in `requirements.txt`) reaches developers
+  only after that workflow has run: tell them to `docker pull` and rebuild
+  the container.
 - Work happens inside the dev container. The workspace is mounted at
   `/aember_ws/aember-resources`, and the venv is `/venv` (on `PATH`). The
   aember repo sits next to it at `/aember_ws/aember`.
