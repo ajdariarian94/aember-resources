@@ -66,8 +66,8 @@ yocto/build/x64-poky-linux/
 ### The dev container image
 
 You don't build the dev container: VS Code pulls the published image
-`ghcr.io/ajdariarian94/aember-resources-dev:latest` (public, no login; about 1 GB, so the
-first pull takes a few minutes, about 4 at 100 Mbit/s). Without VS Code:
+`ghcr.io/ajdariarian94/aember-resources-dev:latest` (public, no login; about 0.4 GB to download, so the
+first pull takes under a minute at 100 Mbit/s). Without VS Code:
 
 ```sh
 docker pull ghcr.io/ajdariarian94/aember-resources-dev:latest

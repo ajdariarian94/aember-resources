@@ -5,13 +5,14 @@
     // Image source — toggle between prebuilt and local build:
     //
     // OPTION A: Pull prebuilt image from GitHub Container Registry
-    // "image": "ghcr.io/ajdariarian94/aember-resources-dev:latest",
+    // (published by .github/workflows/dev-image.yml)
+    "image": "ghcr.io/ajdariarian94/aember-resources-dev:latest",
     //
-    // OPTION B: Build from Dockerfile (when updating tools/dependencies)
-    "build": {
-        "dockerfile": "Dockerfile",
-        "context": ".."
-    },
+    // OPTION B: Build from Dockerfile (only when changing the Dockerfile)
+    // "build": {
+    //    "dockerfile": "Dockerfile",
+    //    "context": ".."
+    //},
     // ---------------------------------------------------------------------------
 
     "runArgs": [
