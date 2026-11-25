@@ -428,6 +428,7 @@ aember-cli/             Python CLI (`aember`), installed editable in /venv
   aember/steps/linting/ LintStep
   aember/config/        components.py (kas chains, packages), release.py (asset names), architecture, sdk (sysroots)
   tests/                unittest: test_architectures.py (every arch complete everywhere)
+                        test_kas_container.py (the CPU cap)
   aember/utils/         kas_container (docker run), kas_hash, fetch_artifact, archive (zip), github, root, runner
 kas/                    kas YAML files (see above)
 meta-aember/            Yocto layer: machines, kernel/busybox/lxc recipes, packages/ + classes-recipe/
@@ -487,6 +488,9 @@ python aember-cli/run.py ... # run the CLI without the installed entry point
 ## Coding conventions (aember-cli)
 
 - Tests: `cd aember-cli && python -m unittest discover -s tests` (stdlib).
+- A test that pins down a fixed bug starts with a comment
+  `Regression: <the bug>` (`grep -rn "Regression:"` lists them). Every bug
+  fix gets one.
   A new architecture must pass `tests/test_architectures.py` before its
   first Yocto build: it checks the CLI maps, kas and Yocto machine files,
   the kernel/BusyBox/LXC configuration and every recipe's
