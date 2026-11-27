@@ -8,6 +8,7 @@ from .base.kas_shell import kas_shell
 from .base.lint import lint
 from .base.pack import pack
 from .base.publish import publish
+from .base.sources import sources
 
 aember = typer.Typer(help="Aember build system")
 
@@ -44,5 +45,9 @@ aember.command(
 aember.command(help="Upload the packed release build/release/v<VERSION>/ to GitHub")(
     publish
 )
+
+aember.command(
+    help="Source archives (copyleft recipes) for the source offer; --pack merges them"
+)(sources)
 
 aember.add_typer(aember_app, name="app")

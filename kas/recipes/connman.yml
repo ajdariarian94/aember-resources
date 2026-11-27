@@ -18,9 +18,16 @@ repos:
 
 local_conf_header:
   aember-connman: |
-    # Ethernet + Wi-Fi (wpa_supplicant), connmanctl, nftables as the
-    # firewall backend; no WISPr (gnutls), VPN, Bluetooth or 3G.
-    PACKAGECONFIG:pn-connman = "wifi wpa-supplicant client nftables"
+    # Ethernet + Wi-Fi (wpa_supplicant), nftables as the firewall backend;
+    # no WISPr (gnutls), VPN, Bluetooth or 3G. No `client` (connmanctl):
+    # it links GNU readline (GPL-3.0-or-later), whose installation-
+    # information clause conflicts with locked devices (v0.1.16, aember's
+    # doc/licensing). ConnMan is driven over D-Bus (dbus-send, or the
+    # application's own D-Bus client).
+    PACKAGECONFIG:pn-connman = "wifi wpa-supplicant nftables"
+    # ...and so no connman-client package to install. Removed here, not in
+    # meta-aember's recipe, so only this package's CAS key changes.
+    AEMBER_PACKAGE_INSTALL:remove:pn-aember-pkg-connman = "connman-client"
     AEMBER_WIFI = "1"
     PACKAGECONFIG:pn-wpa-supplicant = ""
     EXTRA_OECONF:append:pn-wolfssl = " --enable-wpas"

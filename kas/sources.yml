@@ -1,0 +1,20 @@
+# Overlay for `aember sources`: the archiver for the source offer.
+#
+# Not part of any component chain, so no CAS key changes: `aember sources`
+# appends it to a component's chain and runs only `do_deploy_archives`
+# (bitbake --runall) over that component's recipes. Everything else comes
+# from sstate.
+header:
+  version: 23
+
+local_conf_header:
+  aember-sources: |
+    # Original upstream sources + our patches (as a diff) of every recipe
+    # under a copyleft licence (GPL*, LGPL*, AGPL*) that ends up on a device
+    # or in the SDK we publish: target recipes, the SDK's host tools
+    # (nativesdk) and its cross compilers (cross-canadian). Build-host-only
+    # recipes (native, cross, crosssdk) are never distributed.
+    INHERIT += "archiver"
+    ARCHIVER_MODE[src] = "original"
+    ARCHIVER_MODE[diff] = "1"
+    COPYLEFT_RECIPE_TYPES = "target nativesdk cross-canadian"
