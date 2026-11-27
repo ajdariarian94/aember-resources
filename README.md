@@ -28,8 +28,10 @@ The SDKs also carry a minimal Qt 6 (qtbase 6.10.3: Core, Gui, Network,
 linuxfb; no OpenGL or widgets), for small framebuffer UIs such as
 aember-monitor. They also carry GCC's sanitizer runtimes (libasan, libubsan; liblsan and
 libtsan where GCC has them), for aember's sanitizer test builds, and
-wolfSSL (Ed25519, Curve25519, SNI) plus nlohmann/json for aember-auth and
-aember-fleet's agent (v0.1.15).
+mbedTLS 3.6 (Apache-2.0) plus nlohmann/json for aember-auth and
+aember-fleet's agent (v0.1.16; wolfSSL until v0.1.15). `aember sources`
+collects the source archives of every copyleft recipe for the source offer
+(v0.1.16).
 
 The packages ship only their programs and the libraries they need beyond
 the C library (Dropbear 0.7 MB, e2fsprogs 1.7 MB, Wi-Fi client 3.5 MB,

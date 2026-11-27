@@ -407,12 +407,21 @@ repos together. Naming lives in `config/release.py`.
   suite (hours per arch). Qt's make jobs are capped at 4 (its cc1plus take
   ~1 GB). Check new Qt features with `bitbake -g` for clang/mesa first.
   Used by aember-monitor.
-- **wolfSSL and nlohmann/json in every SDK (v0.1.15)**: `sdk.yml` adds
-  meta-networking and `wolfssl-dev` (configured `--enable-ed25519
-  --enable-curve25519 --enable-sni`) and `nlohmann-json-dev`, for
-  aember-auth (TLS client, Ed25519 device key) and aember-fleet's agent
-  (release signatures, SHA-256): ~1.5 MB per container instead of
-  OpenSSL's ~7 MB. Only the SDK key changes.
+- **mbedTLS and nlohmann/json in every SDK (v0.1.16)**: `sdk.yml` adds
+  meta-networking, `mbedtls-dev` (shared libs, no ptest) and
+  `nlohmann-json-dev`, for aember-auth (TLS client) and aember-fleet's
+  agent (SHA-256); Ed25519 is Monocypher, vendored in those repos. v0.1.15
+  had wolfSSL, GPL-2.0-only, which made those proprietary containers GPL
+  (aember's doc/licensing). Only the SDK key changes. wolfSSL stays in the
+  Wi-Fi packages: hostap is BSD, so GPL-2.0 for the combined binary is fine
+  (sources in the source offer).
+- **No connmanctl (v0.1.16)**: `connman.yml` drops PACKAGECONFIG `client`;
+  it links GNU readline (GPL-3.0+), whose installation-information clause
+  conflicts with locked devices. ConnMan is driven over D-Bus.
+- **Source offer (v0.1.16)**: `aember sources` adds `kas/sources.yml`
+  (archiver: original sources + patch diff of every copyleft target,
+  nativesdk and cross-canadian recipe) to a component's chain and runs only
+  `do_deploy_archives`, so no CAS key changes.
 - **No gcc-reflection** and no other custom GCC builds. That's a deliberate
   decision, so don't reintroduce it.
 

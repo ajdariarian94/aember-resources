@@ -45,7 +45,7 @@ BusyBox `ntpd` (already in BusyBox). Order:
 - [x] **Container updates** (2026-11-22): not a package here but two
   container repos, aember-auth (device identity) and aember-fleet (server +
   agent), built with the SDKs; v0.1.15 adds wolfSSL and nlohmann/json to
-  them. Tested in aember's QEMU x64 (update and rollback).
+  them, v0.1.16 swaps wolfSSL for mbedTLS (licensing). Tested in aember's QEMU x64 (update and rollback).
 - [ ] **aember OS updates** (later, user's call): A/B root partitions in
   aember's Pi/USB images and bootloader slot selection (Pi 4 tryboot,
   systemd-boot boot counting); RAUC would need meta-rauc and OpenSSL+GLib,

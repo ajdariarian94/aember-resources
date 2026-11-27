@@ -29,15 +29,19 @@ local_conf_header:
     # Ship liblxc, its headers and lxc.pc in the SDK target sysroot so C++
     # code can build against LXC (aember-lxc-dev pulls in aember-lxc).
     TOOLCHAIN_TARGET_TASK:append = " aember-lxc-dev"
-  aember-sdk-wolfssl: |
-    # wolfSSL (meta-networking) for small TLS clients and signatures:
-    # aember-auth (TLS to the fleet server, Ed25519 device key) and the
-    # aember-fleet agent (Ed25519 + SHA-256 checks). ~1.5 MB instead of
-    # OpenSSL's ~7 MB in each container.
-    TOOLCHAIN_TARGET_TASK:append = " wolfssl-dev"
+  aember-sdk-tls: |
+    # mbedTLS 3.6 (meta-networking, Apache-2.0) for small TLS clients and
+    # hashes: aember-auth (TLS to the fleet server) and the aember-fleet
+    # agent (SHA-256). Ed25519 comes from Monocypher, vendored in those
+    # repos. wolfSSL (GPL-2.0-only) is no longer in the SDK (v0.1.16): it
+    # made aember-auth and the agent GPL when shipped (aember's
+    # doc/licensing). Shared libraries only, no example programs.
+    TOOLCHAIN_TARGET_TASK:append = " mbedtls-dev"
+    PACKAGECONFIG:pn-mbedtls = "shared-libs"
+    # No test suite: poky's ptest would install it, which needs `tests`.
+    PTEST_ENABLED:pn-mbedtls = "0"
     # nlohmann/json (header-only, meta-oe) for the same services' JSON.
     TOOLCHAIN_TARGET_TASK:append = " nlohmann-json-dev"
-    EXTRA_OECONF:append:pn-wolfssl = " --enable-ed25519 --enable-curve25519 --enable-sni"
   aember-sdk-sanitizers: |
     # GCC's sanitizer runtimes (libasan, libubsan; liblsan and libtsan where
     # GCC supports them: not on arm32) in the target sysroot, so aember's
